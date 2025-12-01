@@ -30,9 +30,13 @@ const SERVICE_CONFIG: Record<
   { path?: string; method?: "GET" | "POST" | string; baseUrl?: string }
 > = {
   "peaks-hikes-service": {
-    // Your curl used: http://localhost:8082/peaks-hikes/hello (GET)
     baseUrl: "http://localhost:8082",
     path: "peaks-hikes/hello",
+    method: "GET",
+  },
+  "weather-service": {
+    baseUrl: "http://localhost:8086",
+    path: "weather/current",
     method: "GET",
   },
 };
@@ -54,6 +58,7 @@ const SERVICES = [
 export default function Index() {
   const [loading, setLoading] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<string | null>(null);
+  const [weather, setWeather] = useState<{ temp?: string | null; wind_kmh?: string | null; wind_dir?: string; icon?: string; desc?: string; snow_var_desc?: string; snow_var_unit?: string } | null>(null);
 
   const triggerService = useCallback(async (serviceName: string) => {
     setLoading(serviceName);
@@ -83,6 +88,31 @@ export default function Index() {
     } finally {
       setLoading(null);
     }
+  }, []);
+
+  // Fetch weather once on mount and every minute
+  React.useEffect(() => {
+    let mounted = true;
+    const fetchWeather = async () => {
+      try {
+        const cfg = SERVICE_CONFIG["weather-service"] ?? {};
+        const base = cfg.baseUrl ?? BASE_URL;
+        const path = cfg.path ?? "weather/current"; // fallback, though cfg.path is set
+        const url = `${base}/${path}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (mounted) setWeather(data);
+      } catch (e) {
+        // ignore — optional logging
+      }
+    };
+    fetchWeather();
+    const id = setInterval(fetchWeather, 60_000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, []);
 
   return (
@@ -117,6 +147,19 @@ export default function Index() {
         <Text style={styles.hint}>
           Tap a service above to trigger a background microservice call.
         </Text>
+
+        {/* Weather box top-right with location and 'veter' label */}
+        {weather && (
+          <View style={styles.weatherBox}>
+            <Text style={styles.weatherLoc}>Kredarica</Text>
+            <Text style={styles.weatherTemp}>{weather.temp ?? "--"}°C</Text>
+            <Text style={styles.weatherLine}>veter: {weather.wind_dir ?? ""}, {weather.wind_kmh ?? "--"} km/h</Text>
+            {/* IMPLEMENTIRAJ IKONCE ZA VREME <Text style={styles.weatherLine}>{weather.desc ?? weather.icon ?? ""}</Text> */}
+            {(weather.snow_var_desc || weather.snow_var_unit) && (
+              <Text style={styles.weatherLine}>sneg {weather.snow_var_desc ?? "--"} {weather.snow_var_unit ?? ""}</Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.responseBox}>
           <Text style={styles.responseLabel}>Last response</Text>
@@ -195,6 +238,25 @@ const styles = StyleSheet.create({
     height: "100%",
     opacity: 0.70,
   },
+  weatherBox: {
+    position: "absolute",
+    // place the weather box in the top-right corner so it sits near the
+    // header and aligned to the right edge of the screen
+    top: 12,
+    right: 8,
+    width: 150,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    padding: 8,
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 20,
+  },
+  weatherLoc: { fontSize: 13, color: "#555", fontWeight: "600", marginBottom: 4 },
+  weatherTemp: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
+  weatherLine: { fontSize: 13, color: "#333" },
   content: { flex: 1, padding: 18, alignItems: "flex-start" },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 8 },
   hint: { color: "#666", marginBottom: 18, fontSize: 16 },
