@@ -10,6 +10,9 @@ export default function RootLayout() {
         headerTitle: "Welcome to HIKU!",
         headerTitleStyle: { fontWeight: "800", fontSize: 18 },
       }}
-    />
+    >
+      {/* Hide header on the index screen to avoid duplicate titles with in-page header */}
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+    </Stack>
   );
 }

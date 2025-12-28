@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import {
   Text,
   View,
@@ -8,8 +8,31 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Dimensions,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import Constants from "expo-constants";
+import { fetchTrails as apiFetchTrails, TrailDto } from "./lib/api";
+import { assignDistinctColors } from "./utils/colors";
+import type { TrailFeature } from "./types/trails";
+
+// Import Mapbox for native platforms
+let Mapbox: any, MapView: any, Camera: any, PointAnnotation: any, ShapeSource: any, LineLayer: any;
+if (Platform.OS !== 'web') {
+  const MapboxModule = require("@rnmapbox/maps");
+  Mapbox = MapboxModule.default;
+  MapView = MapboxModule.MapView;
+  Camera = MapboxModule.Camera;
+  PointAnnotation = MapboxModule.PointAnnotation;
+  ShapeSource = MapboxModule.ShapeSource;
+  LineLayer = MapboxModule.LineLayer;
+  Mapbox.setAccessToken("pk.eyJ1IjoiaXpndWJsamVuaS1wZXNhayIsImEiOiJjbWpuYW51ankwYTloM2NzZGNmYjV6NWNyIn0.VfX9BrjukCgJo8Gal1gurQ");
+}
+
+const MAPBOX_TOKEN = "pk.eyJ1IjoiaXpndWJsamVuaS1wZXNhayIsImEiOiJjbWpuYW51ankwYTloM2NzZGNmYjV6NWNyIn0.VfX9BrjukCgJo8Gal1gurQ";
+// Map height ~ half of the screen
+const MAP_HEIGHT = Math.round(Dimensions.get("window").height * 0.5);
 
 // Resolve backend base URL depending on platform with an optional override
 // order (highest precedence): Expo app config extra.BACKEND_URL or process.env.BACKEND_URL,
@@ -55,10 +78,35 @@ const SERVICES = [
   "weather-service",
 ];
 
+// Static icon mapping for services (PNG recommended)
+// Only include icons that exist in assets/icons/
+const ICONS: Record<string, any> = {
+  "activity-service": require("../assets/icons/activity-service.png"),
+  "badge-service": require("../assets/icons/badge-service.png"),
+  "peaks-hikes-service": require("../assets/icons/peaks-hikes-service.png"),
+  "scoreboards-challenges-service": require("../assets/icons/scoreboards-challenges-service.png"),
+  // Add more icons as you create them in assets/icons/
+};
+
 export default function Index() {
   const [loading, setLoading] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<string | null>(null);
   const [weather, setWeather] = useState<{ temp?: string | null; wind_kmh?: string | null; wind_dir?: string; icon?: string; desc?: string; snow_var_desc?: string; snow_var_unit?: string } | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [maxButtonWidth, setMaxButtonWidth] = useState(160);
+  const [leftPanelHeight, setLeftPanelHeight] = useState(0);
+  const [failedIcons, setFailedIcons] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [trailFeatures, setTrailFeatures] = useState<any[]>([]);
+  const [trailLoading, setTrailLoading] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([14.5058, 46.3787]);
+  const trailCollection = useMemo(
+    () => ({ type: "FeatureCollection", features: trailFeatures ?? [] }),
+    [trailFeatures]
+  );
+  
+  // Web map ref
+  const webMapRef = useRef<any>(null);
 
   const triggerService = useCallback(async (serviceName: string) => {
     setLoading(serviceName);
@@ -90,6 +138,47 @@ export default function Index() {
     }
   }, []);
 
+  const fetchTrails = useCallback(async () => {
+    setTrailLoading(true);
+    try {
+      const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
+      const base = cfg.baseUrl ?? BASE_URL;
+      const data: TrailDto[] = await apiFetchTrails(base, searchQuery);
+      console.log("Raw API response:", data);
+
+      let features: TrailFeature[] = Array.isArray(data)
+        ? data.map((t: TrailDto, idx: number) => ({
+            type: "Feature",
+            geometry: t.geometry,
+            properties: {
+              name: t.name ?? `Trail ${idx + 1}`,
+              lengthKm: typeof t.lengthKm === 'number' ? t.lengthKm : undefined,
+            },
+          }))
+        : [];
+
+      features = assignDistinctColors(features);
+      
+      console.log("Transformed features:", features);
+      
+      setTrailFeatures(features);
+      const trailNames = data.map((t: any) => t.name).join(", ");
+      const firstCoord = features?.[0]?.geometry?.coordinates?.[0];
+      if (Array.isArray(firstCoord) && firstCoord.length === 2) {
+        setMapCenter([firstCoord[0], firstCoord[1]]);
+      }
+      
+      setLastResponse(`Fetched ${features.length} trails: ${trailNames}`);
+      console.log("MapCenter set to:", firstCoord, "Trails feature count:", features.length);
+    } catch (err: any) {
+      const msg = err?.message ? String(err.message) : String(err);
+      setLastResponse(`Error fetching trails: ${msg}`);
+      Alert.alert("Error", msg);
+
+    } finally {
+      setTrailLoading(false);
+    }
+  }, [BASE_URL, searchQuery]);
   // Fetch weather once on mount and every minute
   React.useEffect(() => {
     let mounted = true;
@@ -115,49 +204,259 @@ export default function Index() {
     };
   }, []);
 
+  // Initialize mapbox-gl map on web and add trails layer
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !webMapRef.current) return;
+    
+    console.log("Initializing mapbox-gl, webMapRef.current:", webMapRef.current);
+    
+    // Dynamically import mapbox-gl only on web
+    const mapboxgl = require('mapbox-gl');
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    
+    // Create map if not already created
+    if (!webMapRef.current.map) {
+      console.log("Creating new mapbox-gl map");
+      webMapRef.current.map = new mapboxgl.Map({
+        container: webMapRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: mapCenter,
+        zoom: 10,
+      });
+    }
+    
+    const map = webMapRef.current.map;
+    
+    // Add trails when map is ready (loaded or will load)
+    const addTrails = () => {
+      console.log("Adding trails. trailFeatures count:", trailFeatures.length);
+      console.log("Trail collection:", trailCollection);
+      
+      // Add trail source and layer when features are available
+      if (trailFeatures.length > 0) {
+        // Remove old layer and source if they exist
+        if (map.getLayer('trails-layer')) {
+          console.log("Removing existing trails-layer");
+          map.removeLayer('trails-layer');
+        }
+        if (map.getSource('trails-source')) {
+          console.log("Removing existing trails-source");
+          map.removeSource('trails-source');
+        }
+        
+        console.log("Adding trails source with data:", trailCollection);
+        // Add new source and layer
+        map.addSource('trails-source', {
+          type: 'geojson',
+          data: trailCollection,
+        });
+        
+        console.log("Adding trails layer");
+        map.addLayer({
+          id: 'trails-layer',
+          type: 'line',
+          source: 'trails-source',
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 4,
+            'line-opacity': 0.8,
+          },
+        });
+        
+        console.log("Trails layer added successfully");
+      }
+      
+      // Recenter map
+      console.log("Flying to center:", mapCenter);
+      map.flyTo({ center: mapCenter, zoom: 10 });
+    };
+    
+    // If map style is already loaded, add trails immediately
+    if (map.isStyleLoaded()) {
+      console.log("Map style already loaded, adding trails now");
+      addTrails();
+    } else {
+      console.log("Waiting for map to load");
+      map.once('load', () => {
+        console.log("Map loaded, adding trails");
+        addTrails();
+      });
+    }
+    
+    map.on('error', (e: any) => {
+      console.error("Mapbox error:", e);
+    });
+  }, [trailFeatures, mapCenter, trailCollection]);
+
+  // Ensure mapbox-gl canvas resizes when container height changes (web)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const container: any = webMapRef.current;
+    const map = container?.map;
+    if (!container || !map) return;
+
+    // Force a resize after layout changes
+    const resize = () => {
+      try {
+        map.resize();
+      } catch {}
+    };
+    // Next tick resize to catch React layout update
+    const t = setTimeout(resize, 0);
+
+    // Observe container dimension changes (width/height)
+    let ro: any;
+    if (typeof window !== 'undefined' && (window as any).ResizeObserver) {
+      ro = new (window as any).ResizeObserver(() => resize());
+      ro.observe(container);
+    }
+
+    return () => {
+      clearTimeout(t);
+      if (ro) ro.disconnect();
+    };
+  }, [leftPanelHeight]);
+
   return (
     <View style={styles.container}>
-      <View style={styles.topMenuWrap}>
-        <View style={styles.topMenu}>
-          {SERVICES.map((s) => {
-            const isLoading = loading === s;
-            return (
-              <TouchableOpacity
-                key={s}
-                style={[styles.menuItem, isLoading && styles.menuItemLoading]}
-                onPress={() => triggerService(s)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.menuText}>{s}</Text>
-                {isLoading && (
-                  <ActivityIndicator
-                    style={styles.indicator}
-                    size="small"
-                    color="#fff"
-                  />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+      {/* Header with title and auth actions */}
+      {/* Moved service buttons below into left column */}
 
       <View style={styles.content}>
-        <Text style={styles.title}>Hiku mobile — service trigger panel</Text>
-        <Text style={styles.hint}>
-          Tap a service above to trigger a background microservice call.
-        </Text>
+        <View style={styles.headerBar}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>Welcome to Hiku</Text>
+          </View>
 
-        {/* Weather box top-right with location and 'veter' label */}
-        {weather && (
-          <View style={styles.weatherBox}>
-            <Text style={styles.weatherLoc}>Kredarica</Text>
-            <Text style={styles.weatherTemp}>{weather.temp ?? "--"}°C</Text>
-            <Text style={styles.weatherLine}>veter: {weather.wind_dir ?? ""}, {weather.wind_kmh ?? "--"} km/h</Text>
-            {/* IMPLEMENTIRAJ IKONCE ZA VREME <Text style={styles.weatherLine}>{weather.desc ?? weather.icon ?? ""}</Text> */}
-            {(weather.snow_var_desc || weather.snow_var_unit) && (
-              <Text style={styles.weatherLine}>sneg {weather.snow_var_desc ?? "--"} {weather.snow_var_unit ?? ""}</Text>
+          <View style={styles.headerCenter}>
+            {weather ? (
+              <View style={styles.inlineWeather}>
+                <Text style={styles.inlineWeatherPrimary}>Kredarica: {weather.temp ?? "--"}°C</Text>
+                <Text style={styles.inlineWeatherSecondary}>veter {weather.wind_dir ?? ""}, {weather.wind_kmh ?? "--"} km/h</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.authActions}>
+            <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert("Sign up", "Not implemented yet")}> 
+              <Text style={styles.authButtonText}>Sign up</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => Alert.alert("Log in", "Not implemented yet")}> 
+              <Text style={styles.authButtonText}>Log in</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Two-column layout: left (buttons), right (map) */}
+        <View style={styles.mainRow}>
+          <View style={styles.leftColumn}>
+            <View
+              style={[styles.sidePanel, sidebarCollapsed ? styles.sidePanelCollapsed : { width: maxButtonWidth + 28 }]}
+              onLayout={(e) => setLeftPanelHeight(e.nativeEvent.layout.height)}
+            >
+              <View style={styles.sidePanelHeader}>
+                <TouchableOpacity style={styles.collapseToggle} onPress={() => setSidebarCollapsed(!sidebarCollapsed)}>
+                  <Text style={styles.collapseToggleText}>{sidebarCollapsed ? "›" : "‹"}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.topMenu}>
+                {SERVICES.map((s) => {
+                  const isLoading = loading === s;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      style={[sidebarCollapsed ? styles.menuItemCollapsed : styles.menuItem, isLoading && styles.menuItemLoading]}
+                      onPress={() => triggerService(s)}
+                      activeOpacity={0.7}
+                      onLayout={!sidebarCollapsed ? (e) => {
+                        const w = e.nativeEvent.layout.width;
+                        setMaxButtonWidth((prev) => (w > prev ? w : prev));
+                      } : undefined}
+                    >
+                      {/* Icon from assets/icons/<service>.png */}
+                      {!failedIcons[s] && ICONS[s] ? (
+                        <Image
+                          source={ICONS[s]}
+                          style={styles.serviceIconImg}
+                          resizeMode="contain"
+                          onError={() => setFailedIcons((prev) => ({ ...prev, [s]: true }))}
+                        />
+                      ) : (
+                        <Text style={styles.serviceIconText}>🔧</Text>
+                      )}
+                      {!sidebarCollapsed && <Text style={styles.menuText}>{s}</Text>}
+                      {isLoading && (
+                        <ActivityIndicator style={styles.indicator} size="small" color="#fff" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.rightColumn}>
+            <View style={styles.searchBarContainer}>
+              <TextInput
+                placeholder="Search for trails..."
+                placeholderTextColor="#666"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={fetchTrails}
+                returnKeyType="search"
+                style={styles.searchInput}
+              />
+              <TouchableOpacity style={styles.searchButton} onPress={fetchTrails} disabled={trailLoading}>
+                <Text style={styles.searchButtonText}>{trailLoading ? "…" : "🔍"}</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Mapbox Map - Native platforms */}
+            {Platform.OS !== 'web' && (
+              <View style={[styles.mapContainer, leftPanelHeight ? { height: leftPanelHeight } : null]}>
+                <MapView style={styles.map}>
+                  <Camera zoomLevel={8} centerCoordinate={mapCenter} />
+                  {trailFeatures.length > 0 && (
+                    <ShapeSource
+                      id="trails-source"
+                      shape={{ type: "FeatureCollection", features: trailFeatures }}
+                    >
+                      <LineLayer
+                        id="trails-line"
+                        style={{ lineColor: "#FF5A5F", lineWidth: 4, lineOpacity: 0.8, lineCap: "round", lineJoin: "round" }}
+                      />
+                    </ShapeSource>
+                  )}
+                  <PointAnnotation id="marker1" coordinate={[14.5058, 46.3787]}>
+                    <View style={styles.markerContainer}><Text style={styles.markerText}>📍</Text></View>
+                  </PointAnnotation>
+                </MapView>
+              </View>
             )}
+
+            {/* Mapbox Map - Web using mapbox-gl */}
+            {Platform.OS === 'web' && (
+              <div style={{ width: '100%', height: leftPanelHeight || 400, borderRadius: 8, overflow: 'hidden' }} ref={webMapRef} />
+            )}
+          </View>
+        </View>
+
+        {/* Scrollable list of displayed trails (hidden when none) */}
+        {trailFeatures.length > 0 && (
+          <View style={styles.trailsListContainer}>
+            <Text style={styles.trailsListHeader}>Trails ({trailFeatures.length})</Text>
+            <ScrollView style={styles.trailsScroll}>
+              {trailFeatures.map((f: any, idx: number) => (
+                <View key={`${f?.properties?.name ?? idx}-${idx}`} style={styles.trailItem}>
+                  <View style={[styles.trailColorDot, { backgroundColor: f?.properties?.color ?? '#999' }]} />
+                  <Text style={styles.trailName}>
+                    {f?.properties?.name ?? `Trail ${idx + 1}`}
+                    {typeof f?.properties?.lengthKm === 'number'
+                      ? ` (${Number(f?.properties?.lengthKm).toFixed(2)} km)`
+                      : ''}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -168,9 +467,7 @@ export default function Index() {
           </Text>
         </View>
       </View>
-      {/* Decorative background image placed under the UI (blurred and low opacity).
-          It is positioned absolutely and set to ignore pointer events so it doesn't
-          intercept touches. Place Triglav.jpg in hiku-mobile/assets/images/Triglav.jpg */}
+      {/* Background hero image with blur */}
       <View style={styles.heroWrapper} pointerEvents="none">
         <Image
           source={require("../assets/images/Triglav.jpg")}
@@ -193,11 +490,34 @@ const styles = StyleSheet.create({
   topMenu: {
     paddingHorizontal: 8,
     paddingVertical: 10,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
     justifyContent: "flex-start",
   },
+  sidePanel: {
+    backgroundColor: "rgba(255,255,255,0.5)",
+    borderRadius: 8,
+    padding: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sidePanelCollapsed: {
+    width: 56,
+  },
+  sidePanelHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 8,
+  },
+  collapseToggle: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  collapseToggleText: { color: "#333", fontWeight: "700", fontSize: 16 },
   menuItem: {
     backgroundColor: "#007AFF",
     paddingHorizontal: 14,
@@ -208,9 +528,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  menuItemCollapsed: {
+    backgroundColor: "#007AFF",
+    width: 44,
+    height: 44,
+    marginHorizontal: 6,
+    marginBottom: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   menuItemLoading: {
     opacity: 0.9,
   },
+  serviceIconImg: { width: 22, height: 22, marginRight: 8 },
+  serviceIconText: { color: "#fff", fontSize: 18, marginRight: 8 },
   menuText: { color: "#fff", fontWeight: "600", marginRight: 6, fontSize: 16 },
   indicator: { marginLeft: 0 },
   heroImage: { width: "100%", height: 200 },
@@ -257,8 +589,59 @@ const styles = StyleSheet.create({
   weatherLoc: { fontSize: 13, color: "#555", fontWeight: "600", marginBottom: 4 },
   weatherTemp: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
   weatherLine: { fontSize: 13, color: "#333" },
+  mainRow: { flexDirection: "row", alignItems: "stretch", gap: 16, flex: 1, width: "100%" },
+  leftColumn: { flexShrink: 0 },
+  rightColumn: { flex: 1 },
+  searchBarContainer: {
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  searchInput: {
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    paddingHorizontal: 12,
+    backgroundColor: "#fff",
+    flex: 1,
+  },
+  searchButton: {
+    marginLeft: 8,
+    height: 42,
+    width: 46,
+    borderRadius: 8,
+    backgroundColor: "#007AFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchButtonText: { color: "#fff", fontSize: 18 },
+  mapContainer: { width: "100%", borderRadius: 8, overflow: "hidden" },
+  map: { flex: 1 },
+  markerContainer: { alignItems: "center", justifyContent: "center" },
+  markerText: { fontSize: 30 },
   content: { flex: 1, padding: 18, alignItems: "flex-start" },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 8 },
+  headerBar: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  headerLeft: { flex: 1 },
+  headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
+  inlineWeather: { alignItems: "center" },
+  inlineWeatherPrimary: { fontSize: 16, fontWeight: "700", color: "#333" },
+  inlineWeatherSecondary: { fontSize: 12, color: "#555" },
+  title: { fontSize: 22, fontWeight: "700" },
+  authActions: { flexDirection: "row", alignItems: "center" },
+  authButton: {
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  authButtonText: { color: "#fff", fontWeight: "600" },
   hint: { color: "#666", marginBottom: 18, fontSize: 16 },
   responseBox: {
     width: "100%",
@@ -268,4 +651,26 @@ const styles = StyleSheet.create({
   },
   responseLabel: { color: "#333", fontWeight: "600", marginBottom: 6, fontSize: 16 },
   responseText: { color: "#222", fontSize: 16 },
+  // Trails list styles
+  trailsListContainer: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ddd",
+    padding: 8,
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  trailsListHeader: { fontSize: 16, fontWeight: "700", color: "#333", marginBottom: 6 },
+  trailsScroll: { maxHeight: 180 },
+  trailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#eee",
+  },
+  trailColorDot: { width: 14, height: 14, borderRadius: 7, marginRight: 8 },
+  trailName: { fontSize: 15, color: "#222" },
 });
