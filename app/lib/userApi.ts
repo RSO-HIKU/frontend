@@ -30,3 +30,17 @@ export async function updateUserProfile(userId: string, data: Partial<UserProfil
   if (!res.ok) throw new Error(`User update failed: ${res.status}`);
   return res.json();
 }
+export async function fetchFollowers(userId: string): Promise<UserProfileDto[]> {
+  const baseUrl = getServiceUrl("user-service");
+  const res = await fetch(`${baseUrl}/user-service/user/${userId}/followers`);
+  if (!res.ok) throw new Error("Failed to fetch followers");
+  console.log("Fetched followers response:", res);
+  return res.json();
+}
+
+export async function fetchFollowing(userId: string): Promise<UserProfileDto[]> {
+  const baseUrl = getServiceUrl("user-service");
+  const res = await fetch(`${baseUrl}/user-service/user/${userId}/following`);
+  if (!res.ok) throw new Error("Failed to fetch following");
+  return res.json();
+}
