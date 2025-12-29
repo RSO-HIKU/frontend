@@ -1,15 +1,52 @@
-import { View, Text, StyleSheet, Image } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, StyleSheet, Image, ActivityIndicator, Alert } from "react-native";
+import { fetchUserProfile, UserProfileDto } from "./lib/userApi"; // adjust path
 
 export default function UserProfile() {
+  const [user, setUser] = useState<UserProfileDto | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const userId = "1"; // Replace with dynamic user ID as needed
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const data = await fetchUserProfile(userId );
+        setUser(data);
+      } catch (err: any) {
+        Alert.alert("Error", err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUser();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.info}>User data not available.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Image
         source={{ uri: "https://picsum.photos/200" }}
         style={styles.avatar}
       />
-      <Text style={styles.name}>Janez Novak</Text>
-      <Text style={styles.info}>Total hikes: 27</Text>
-      <Text style={styles.info}>Achievements: 5</Text>
+      <Text style={styles.name}>{user.name}</Text>
+        {user.email && <Text style={styles.info}>{user.email}</Text>}
+
     </View>
   );
 }
