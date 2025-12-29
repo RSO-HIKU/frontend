@@ -352,7 +352,7 @@ export default function Index() {
 
             <TouchableOpacity
               style={[styles.authButton, { marginLeft: 8, marginRight:8 }]}
-              onPress={() => router.push("/user-profile")}
+              onPress={() => router.push("/my-user-profile")}
             >
               <Text style={styles.authButtonText}>My Profile</Text>
             </TouchableOpacity>

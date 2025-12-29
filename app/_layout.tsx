@@ -15,6 +15,7 @@ export default function RootLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="social-feed" options={{ title: "Social Feed" }} />
       <Stack.Screen name="user-profile" options={{ title: "User Profile" }} />
+      <Stack.Screen name="my-user-profile" options={{ title: "My User Profile" }} />
     </Stack>
   );
 }

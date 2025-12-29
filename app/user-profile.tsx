@@ -44,8 +44,9 @@ export default function UserProfile() {
         source={{ uri: "https://picsum.photos/200" }}
         style={styles.avatar}
       />
-      <Text style={styles.name}>{user.name}</Text>
+        <Text style={styles.name}>{user.username}</Text>
         {user.email && <Text style={styles.info}>{user.email}</Text>}
+        
 
     </View>
   );

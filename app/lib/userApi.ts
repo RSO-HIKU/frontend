@@ -2,8 +2,11 @@ import { getServiceUrl } from "./appConfig";
 
 export type UserProfileDto = {
   id: string;
-  name: string;
+  username: string;
   email?: string;
+    age?: number;
+    fullName?: string;
+    bio?: string;
 
 };
 
@@ -12,5 +15,18 @@ export async function fetchUserProfile(userId: string): Promise<UserProfileDto> 
   const res = await fetch(`${baseUrl}/user-service/user/${encodeURIComponent(userId)}`);
  
   if (!res.ok) throw new Error(`User fetch failed: ${res.status}`);
+  return res.json();
+}
+export async function updateUserProfile(userId: string, data: Partial<UserProfileDto>): Promise<UserProfileDto> {
+  const baseUrl = getServiceUrl("user-service");
+  const res = await fetch(`${baseUrl}/user-service/user/${encodeURIComponent(userId)}`, {
+    method: "PATCH", // <--- change to PATCH
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) throw new Error(`User update failed: ${res.status}`);
   return res.json();
 }
