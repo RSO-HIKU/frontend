@@ -13,6 +13,8 @@ export default function RootLayout() {
     >
       {/* Hide header on the index screen to avoid duplicate titles with in-page header */}
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="social-feed" options={{ title: "Social Feed" }} />
+      <Stack.Screen name="user-profile" options={{ title: "User Profile" }} />
     </Stack>
   );
 }

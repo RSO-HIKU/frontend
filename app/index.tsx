@@ -1,4 +1,6 @@
 import React, { useCallback, useState, useEffect, useMemo, useRef } from "react";
+import { router } from "expo-router";
+
 import {
   Text,
   View,
@@ -337,7 +339,23 @@ export default function Index() {
             ) : null}
           </View>
 
+    
+
           <View style={styles.authActions}>
+
+            <TouchableOpacity
+              style={styles.authButton}
+              onPress={() => router.push("/social-feed")}
+            >
+              <Text style={styles.authButtonText}>Social Feed</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.authButton, { marginLeft: 8, marginRight:8 }]}
+              onPress={() => router.push("/user-profile")}
+            >
+              <Text style={styles.authButtonText}>My Profile</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert("Sign up", "Not implemented yet")}> 
               <Text style={styles.authButtonText}>Sign up</Text>
             </TouchableOpacity>
@@ -366,7 +384,12 @@ export default function Index() {
                     <TouchableOpacity
                       key={s}
                       style={[sidebarCollapsed ? styles.menuItemCollapsed : styles.menuItem, isLoading && styles.menuItemLoading]}
-                      onPress={() => triggerService(s)}
+                      onPress={() =>
+                        
+                        
+                        
+                        
+                        triggerService(s)}
                       activeOpacity={0.7}
                       onLayout={!sidebarCollapsed ? (e) => {
                         const w = e.nativeEvent.layout.width;
