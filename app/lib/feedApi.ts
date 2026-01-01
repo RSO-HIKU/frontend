@@ -76,4 +76,19 @@ export const feedApi = {
       throw error;
     }
   },
+
+  // ...existing code...
+  async getMyPosts(userId: number): Promise<Post[]> {
+    try {
+      const response = await fetch(`${API_URL}/feed/postFrom/${userId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch my posts: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching my posts:", error);
+      throw error;
+    }
+  },
+// ...existing code...
 };
