@@ -41,14 +41,15 @@ export const feedApi = {
   },
 
   // Create a new post
+
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
     try {
-      const response = await fetch(`${API_URL}/post`, {
+      const response = await fetch(`${API_URL}/feed/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...post,
-          createdAt: new Date().toISOString(),
+          createdAt: new Date().toISOString().slice(0, 19),
           automated: false,
         }),
       });
@@ -62,10 +63,11 @@ export const feedApi = {
     }
   },
 
+
   // Delete a post
   async deletePost(postId: number): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/post/${postId}`, {
+      const response = await fetch(`${API_URL}/feed/post/${postId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
