@@ -10,6 +10,7 @@ import {
   unfollowUser,
   UserProfileDto 
 } from "./lib/userApi";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function MyUserProfile() {
   const [user, setUser] = useState<UserProfileDto | null>(null);
@@ -138,6 +139,7 @@ const handleFollowUser = async (targetUserId: string) => {
   if (view === "profile") {
     return (
       <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.pageTitle}>My Profile</Text>
         <Image source={{ uri: "https://picsum.photos/200" }} style={styles.avatar} />
         {editing ? (
           <>
@@ -159,11 +161,15 @@ const handleFollowUser = async (targetUserId: string) => {
               numberOfLines={4}
               textAlignVertical="top"
             />
-            <View style={styles.buttonContainer}>
-              <Button title="Save" onPress={saveChanges} />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Button title="Cancel" onPress={() => setEditing(false)} />
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.saveButton} onPress={saveChanges}>
+                <Ionicons name="checkmark" size={20} color="#fff" />
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setEditing(false)}>
+                <Ionicons name="close" size={20} color="#fff" />
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </>
         ) : (
@@ -172,17 +178,23 @@ const handleFollowUser = async (targetUserId: string) => {
             {user.email && <Text style={styles.info}>{user.email}</Text>}
             {user.age !== undefined && <Text style={styles.info}>Age: {user.age}</Text>}
             {user.bio && <Text style={styles.info}>{user.bio}</Text>}
-            <View style={styles.buttonContainer}>
-              <Button title="Edit" onPress={() => setEditing(true)} />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Button title="Followers" onPress={showFollowers} />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Button title="Following" onPress={showFollowing} />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Button title="Search Users" onPress={() => setSearchModalVisible(true)} />
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
+                <Ionicons name="pencil" size={18} color="#fff" />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sectionButton} onPress={showFollowers}>
+                <Ionicons name="people" size={18} color="#fff" />
+                <Text style={styles.sectionButtonText}>Followers</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sectionButton} onPress={showFollowing}>
+                <Ionicons name="person-add" size={18} color="#fff" />
+                <Text style={styles.sectionButtonText}>Following</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sectionButton} onPress={() => setSearchModalVisible(true)}>
+                <Ionicons name="search" size={18} color="#fff" />
+                <Text style={styles.sectionButtonText}>Search Users</Text>
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -250,51 +262,60 @@ const handleFollowUser = async (targetUserId: string) => {
   }
 
   // Followers or Following list view
+  const listTitle = view === "followers" ? "Followers" : "Following";
   const list = view === "followers" ? followers : following;
 
   return (
-<ScrollView contentContainerStyle={styles.container}>
-  <Button title="← Back to Profile" onPress={() => setView("profile")} />
-  {listLoading ? (
-    <ActivityIndicator style={{ marginTop: 20 }} />
-  ) : (
-    list.map((u) => (
-      <View key={u.id} style={styles.listItem}>
-        <Text style={styles.name}>{u.username}</Text>
-        {view === "following" ? (
-          <TouchableOpacity
-            style={styles.unfollowButton}
-            onPress={async () => {
-              try {
-                await unfollowUser(userId, u.id);
-                setFollowing(following.filter((f) => f.id !== u.id));
-              } catch (err: any) {
-                alert("Failed to unfollow");
-              }
-            }}
-          >
-            <Text style={styles.unfollowButtonText}>Unfollow</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.unfollowButton}
-            onPress={async () => {
-              try {
-                await unfollowUser(u.id, userId);
-                setFollowers(followers.filter((f) => f.id !== u.id));
-              } catch (err: any) {
-                alert("Failed to remove follower");
-              }
-            }}
-          >
-            <Text style={styles.unfollowButtonText}>Remove</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    ))
-  )}
-</ScrollView>
-  );
+  <ScrollView contentContainerStyle={styles.container}>
+    <Text style={styles.pageTitle}>{listTitle}</Text>
+    <TouchableOpacity style={styles.backButton} onPress={() => setView("profile")}>
+      <Ionicons name="arrow-back" size={20} color="#007AFF" />
+      <Text style={styles.backButtonText}>Back to Profile</Text>
+    </TouchableOpacity>
+    {listLoading ? (
+      <ActivityIndicator style={{ marginTop: 20 }} />
+    ) : (
+      list.map((u) => (
+        <View key={u.id} style={styles.listItem}>
+          <Text style={styles.name}>{u.username}</Text>
+          {view === "following" ? (
+            <TouchableOpacity
+              style={styles.unfollowButton}
+              accessibilityLabel={`Unfollow ${u.username}`}
+              onPress={async () => {
+                try {
+                  await unfollowUser(userId, u.id);
+                  setFollowing(following.filter((f) => f.id !== u.id));
+                } catch (err: any) {
+                  alert("Failed to unfollow");
+                }
+              }}
+            >
+              <Ionicons name="person-remove" size={16} color="#fff" />
+              <Text style={styles.unfollowButtonText}>Unfollow</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.unfollowButton}
+              accessibilityLabel={`Remove follower ${u.username}`}
+              onPress={async () => {
+                try {
+                  await unfollowUser(u.id, userId);
+                  setFollowers(followers.filter((f) => f.id !== u.id));
+                } catch (err: any) {
+                  alert("Failed to remove follower");
+                }
+              }}
+            >
+              <Ionicons name="person-remove" size={16} color="#fff" />
+              <Text style={styles.unfollowButtonText}>Remove</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ))
+    )}
+  </ScrollView>
+);
 }
 
 const styles = StyleSheet.create({
@@ -323,8 +344,81 @@ const styles = StyleSheet.create({
   followButton: { backgroundColor: "#007AFF", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
   followButtonText: { color: "#fff", fontWeight: "600" },
   
-
-    unfollowButton: {
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#007AFF",
+    textAlign: "center",
+  },
+  buttonRow: {
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 16,
+    marginVertical: 20,
+    width: "100%",
+    maxWidth: 500,
+    marginHorizontal: "auto",
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 8,
+    width: "100%",
+  },
+  editButtonText: { color: "#fff", fontWeight: "600", marginLeft: 8, fontSize: 16 },
+  sectionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#34C759",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 8,
+    width: "100%",
+  },
+  sectionButtonText: { color: "#fff", fontWeight: "600", marginLeft: 8, fontSize: 16 },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#34C759",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  saveButtonText: { color: "#fff", fontWeight: "600", marginLeft: 6 },
+  cancelButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FF3B30",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  cancelButtonText: { color: "#fff", fontWeight: "600", marginLeft: 6 },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  backButtonText: {
+    color: "#007AFF",
+    fontWeight: "600",
+    marginLeft: 6,
+    fontSize: 16,
+  },
+  unfollowButton: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#FF3B30",
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -334,7 +428,9 @@ const styles = StyleSheet.create({
   unfollowButtonText: {
     color: "#fff",
     fontWeight: "600",
+    marginLeft: 6,
   },
+
   emptyText: { textAlign: "center", marginTop: 20, color: "#999" },
   closeButtonContainer: { marginTop: 20, borderRadius: 8, overflow: "hidden" },
 });
