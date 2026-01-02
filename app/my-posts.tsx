@@ -13,7 +13,7 @@ export default function MyPosts() {
   const [creating, setCreating] = useState(false);
   const router = useRouter();
   const currentUserId = 3; // Replace with actual current user ID from auth context
-    const currentUsername = "ana"; // Replace with actual current username from auth context
+    const currentUsername = "janez"; // Replace with actual current username from auth context
   useEffect(() => {
     loadMyPosts();
   }, []);

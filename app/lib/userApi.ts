@@ -9,6 +9,7 @@ export type UserProfileDto = {
     bio?: string;
 
 };
+const API_URL = getServiceUrl("user-service");
 
 export async function fetchUserProfile(userId: string): Promise<UserProfileDto> {
   const baseUrl = getServiceUrl("user-service");
@@ -44,3 +45,25 @@ export async function fetchFollowing(userId: string): Promise<UserProfileDto[]> 
   if (!res.ok) throw new Error("Failed to fetch following");
   return res.json();
 }
+
+
+export const searchUsers = async (query: string): Promise<UserProfileDto[]> => {
+  const response = await fetch(`${API_URL}/user-service/user/search?search=${encodeURIComponent(query)}`);
+  if (!response.ok) throw new Error("Failed to search users");
+  return await response.json();
+};
+
+export const followUser = async (followerId: string, followingId: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/user-service/user/${followerId}/follow/${followingId}`, {
+    method: "POST",
+  });
+  if (!response.ok) throw new Error("Failed to follow user");
+};
+
+export const unfollowUser = async (followerId: string, followingId: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/user-service/user/${followerId}/follow/${followingId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to unfollow user");
+};
+
