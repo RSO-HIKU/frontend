@@ -42,6 +42,8 @@ export default function MyUserProfile() {
         setUsername(data.username);
         setEmail(data.email || "");
         setAge(data.age);
+        const followingData = await fetchFollowing(userId);
+      setFollowing(followingData);
       } catch (err: any) {
         alert(`Error: ${err.message}`);
       } finally {
@@ -204,29 +206,38 @@ const handleFollowUser = async (targetUserId: string) => {
             {searching ? (
               <ActivityIndicator style={{ marginTop: 20 }} />
             ) : (
-              <FlatList
-                data={searchResults}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <View style={styles.searchResultItem}>
-                    <View style={styles.resultInfo}>
-                      <Text style={styles.resultUsername}>{item.username}</Text>
-                      {item.bio && <Text style={styles.resultBio}>{item.bio}</Text>}
-                    </View>
-                    <TouchableOpacity
-                      style={styles.followButton}
-                      onPress={() => handleFollowUser(item.id)}
-                    >
-                      <Text style={styles.followButtonText}>Follow</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-                ListEmptyComponent={
-                  <Text style={styles.emptyText}>
-                    {searchQuery ? "No users found" : "Search to find users"}
-                  </Text>
-                }
-              />
+<FlatList
+  data={searchResults}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => {
+    const isFollowing = following.some((f) => f.id === item.id);
+    return (
+      <View style={styles.searchResultItem}>
+        <View style={styles.resultInfo}>
+          <Text style={styles.resultUsername}>{item.username}</Text>
+          {item.bio && <Text style={styles.resultBio}>{item.bio}</Text>}
+        </View>
+        {isFollowing ? (
+          <TouchableOpacity style={[styles.followButton, { backgroundColor: "#ccc" }]} disabled>
+            <Text style={[styles.followButtonText, { color: "#888" }]}>Already Following</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.followButton}
+            onPress={() => handleFollowUser(item.id)}
+          >
+            <Text style={styles.followButtonText}>Follow</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }}
+  ListEmptyComponent={
+    <Text style={styles.emptyText}>
+      {searchQuery ? "No users found" : "Search to find users"}
+    </Text>
+  }
+/>
             )}
 
             <View style={styles.closeButtonContainer}>
