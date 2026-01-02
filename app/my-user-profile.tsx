@@ -253,18 +253,47 @@ const handleFollowUser = async (targetUserId: string) => {
   const list = view === "followers" ? followers : following;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Button title="← Back to Profile" onPress={() => setView("profile")} />
-      {listLoading ? (
-        <ActivityIndicator style={{ marginTop: 20 }} />
-      ) : (
-        list.map((u) => (
-          <View key={u.id} style={styles.listItem}>
-            <Text style={styles.name}>{u.username}</Text>
-          </View>
-        ))
-      )}
-    </ScrollView>
+<ScrollView contentContainerStyle={styles.container}>
+  <Button title="← Back to Profile" onPress={() => setView("profile")} />
+  {listLoading ? (
+    <ActivityIndicator style={{ marginTop: 20 }} />
+  ) : (
+    list.map((u) => (
+      <View key={u.id} style={styles.listItem}>
+        <Text style={styles.name}>{u.username}</Text>
+        {view === "following" ? (
+          <TouchableOpacity
+            style={styles.unfollowButton}
+            onPress={async () => {
+              try {
+                await unfollowUser(userId, u.id);
+                setFollowing(following.filter((f) => f.id !== u.id));
+              } catch (err: any) {
+                alert("Failed to unfollow");
+              }
+            }}
+          >
+            <Text style={styles.unfollowButtonText}>Unfollow</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.unfollowButton}
+            onPress={async () => {
+              try {
+                await unfollowUser(u.id, userId);
+                setFollowers(followers.filter((f) => f.id !== u.id));
+              } catch (err: any) {
+                alert("Failed to remove follower");
+              }
+            }}
+          >
+            <Text style={styles.unfollowButtonText}>Remove</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    ))
+  )}
+</ScrollView>
   );
 }
 
@@ -294,6 +323,18 @@ const styles = StyleSheet.create({
   followButton: { backgroundColor: "#007AFF", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 },
   followButtonText: { color: "#fff", fontWeight: "600" },
   
+
+    unfollowButton: {
+    backgroundColor: "#FF3B30",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginLeft: 10,
+  },
+  unfollowButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
   emptyText: { textAlign: "center", marginTop: 20, color: "#999" },
   closeButtonContainer: { marginTop: 20, borderRadius: 8, overflow: "hidden" },
 });

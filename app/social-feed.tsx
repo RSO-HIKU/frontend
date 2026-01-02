@@ -8,7 +8,7 @@ export default function SocialFeed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const currentUserId = 3; // Replace with actual current user ID from auth context
+  const currentUserId = 2; // Replace with actual current user ID from auth context
 
   useEffect(() => {
     loadFollowedPosts();
