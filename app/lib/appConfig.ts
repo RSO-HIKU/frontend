@@ -2,18 +2,20 @@
 
 export const AppConfig = {
   environment: process.env.NODE_ENV || "development",
-  services: {
-    "user-service": "http://localhost:8083",
-    "social-feed-service": "http://localhost:8091",
-  } as const, // make keys readonly literals
+  // services: {
+  //   "user-service": "http://localhost:8083",
+  //   "social-feed-service": "http://localhost:8091",
+  // } as const, // make keys readonly literals
+  gatewayUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:30080",
 };
 
 // Type for service names
-export type ServiceName = keyof typeof AppConfig.services;
+// export type ServiceName = keyof typeof AppConfig.services;
 
 // Helper function with proper typing
-export const getServiceUrl = (serviceName: ServiceName): string => {
-  return AppConfig.services[serviceName];
+export const getServiceUrl = (path: string): string => {
+  // return AppConfig.services[serviceName];
+  return `${AppConfig.gatewayUrl}${path}`;
 };
 
 export const appConfig = {

@@ -21,6 +21,7 @@ import type { TrailFeature, TrailDto } from "./types/trails";
 
 import { appConfig } from "./lib/appConfig";
 import { useAuth } from "./context/AuthContext";
+import { getServiceUrl } from "./lib/appConfig";
 
 // Import Mapbox for native platforms
 let Mapbox: any, MapView: any, Camera: any, PointAnnotation: any, ShapeSource: any, LineLayer: any;
@@ -104,7 +105,7 @@ export default function Index() {
   const [peakFeatures, setPeakFeatures] = useState<any[]>([]);
   const [peakLoading, setPeakLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([14.5058, 46.3787]);
-  const { ready, authenticated, login, logout, getToken } = useAuth();
+  const { ready, authenticated, login, logout, register, getToken } = useAuth();
   const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
 
   useEffect(() => {
