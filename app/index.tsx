@@ -15,9 +15,13 @@ import {
   ScrollView,
 } from "react-native";
 import Constants from "expo-constants";
-import { fetchTrails as apiFetchTrails, TrailDto } from "./lib/api";
+import { createApi } from "./lib/api";
 import { assignDistinctColors } from "./utils/colors";
-import type { TrailFeature } from "./types/trails";
+import type { TrailFeature, TrailDto } from "./types/trails";
+
+import { appConfig } from "./lib/appConfig";
+import { useAuth } from "./context/AuthContext";
+import { getServiceUrl } from "./lib/appConfig";
 
 // Import Mapbox for native platforms
 let Mapbox: any, MapView: any, Camera: any, PointAnnotation: any, ShapeSource: any, LineLayer: any;
@@ -68,10 +72,7 @@ const SERVICE_CONFIG: Record<
 
 const SERVICES = [
   "activity-service",
-  "authentication-service",
   "badge-service",
-  "gateway-service",
-  "notification-service",
   "peaks-hikes-service",
   "scoreboards-challenges-service",
   "social-feed-service",
@@ -101,7 +102,17 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState("");
   const [trailFeatures, setTrailFeatures] = useState<any[]>([]);
   const [trailLoading, setTrailLoading] = useState(false);
+  const [peakFeatures, setPeakFeatures] = useState<any[]>([]);
+  const [peakLoading, setPeakLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([14.5058, 46.3787]);
+  const { ready, authenticated, login, logout, register, getToken } = useAuth();
+  const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!authenticated) router.replace("/login");
+  }, [ready, authenticated]);
+
   const trailCollection = useMemo(
     () => ({ type: "FeatureCollection", features: trailFeatures ?? [] }),
     [trailFeatures]
@@ -145,7 +156,8 @@ export default function Index() {
     try {
       const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
       const base = cfg.baseUrl ?? BASE_URL;
-      const data: TrailDto[] = await apiFetchTrails(base, searchQuery);
+      console.log("Fetching trails from", base, "query:", searchQuery);
+      const data: TrailDto[] = await api.fetchTrails(searchQuery);
       console.log("Raw API response:", data);
 
       let features: TrailFeature[] = Array.isArray(data)
@@ -180,7 +192,51 @@ export default function Index() {
     } finally {
       setTrailLoading(false);
     }
+  }, [BASE_URL, searchQuery, api]);
+
+  const fetchPeaks = useCallback(async () => {
+    setPeakLoading(true);
+    try {
+      const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
+      const base = cfg.baseUrl ?? BASE_URL;
+      console.log("Fetching peaks from", base, "query:", searchQuery);
+      const data = await api.fetchPeaks(searchQuery);
+      console.log("Raw peaks API response:", data);
+
+      const features = Array.isArray(data)
+        ? data.map((p: any, idx: number) => ({
+            type: "Feature",
+            geometry: p.geometry,
+            properties: {
+              id: p.id,
+              name: p.name ?? `Peak ${idx + 1}`,
+              territory: p.territory,
+              latitude: p.latitude,
+              longitude: p.longitude,
+              elevationM: p.elevationM,
+            },
+          }))
+        : [];
+
+      console.log("Transformed peak features:", features);
+      setPeakFeatures(features);
+      const peakNames = data.map((p: any) => p.name).join(", ");
+      setLastResponse(`Fetched ${features.length} peaks: ${peakNames}`);
+      console.log("Peak feature count:", features.length);
+    } catch (err: any) {
+      const msg = err?.message ? String(err.message) : String(err);
+      setLastResponse(`Error fetching peaks: ${msg}`);
+      Alert.alert("Error", msg);
+    } finally {
+      setPeakLoading(false);
+    }
   }, [BASE_URL, searchQuery]);
+
+  // Auto-load trails on mount so the map has data without a manual search
+  useEffect(() => {
+    fetchTrails();
+    fetchPeaks();
+  }, [fetchTrails, fetchPeaks]);
   // Fetch weather once on mount and every minute
   React.useEffect(() => {
     let mounted = true;
@@ -268,27 +324,63 @@ export default function Index() {
         console.log("Trails layer added successfully");
       }
       
+      // Add peaks
+      if (peakFeatures.length > 0) {
+        if (map.getLayer('peaks-layer')) {
+          console.log("Removing existing peaks-layer");
+          map.removeLayer('peaks-layer');
+        }
+        if (map.getSource('peaks-source')) {
+          console.log("Removing existing peaks-source");
+          map.removeSource('peaks-source');
+        }
+        
+        console.log("Adding peaks source with data:", { type: 'FeatureCollection', features: peakFeatures });
+        map.addSource('peaks-source', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: peakFeatures },
+        });
+        
+        console.log("Adding peaks layer");
+        map.addLayer({
+          id: 'peaks-layer',
+          type: 'circle',
+          source: 'peaks-source',
+          paint: {
+            'circle-radius': 8,
+            'circle-color': '#FF5A5F',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#FFFFFF',
+          },
+        });
+        
+        console.log("Peaks layer added successfully");
+      }
+      
       // Recenter map
       console.log("Flying to center:", mapCenter);
       map.flyTo({ center: mapCenter, zoom: 10 });
     };
     
+    // Ensure we react as soon as the map reports load
+    const handleMapLoad = () => {
+      console.log("Map load event fired, adding trails");
+      addTrails();
+    };
+
     // If map style is already loaded, add trails immediately
     if (map.isStyleLoaded()) {
       console.log("Map style already loaded, adding trails now");
-      addTrails();
+      handleMapLoad();
     } else {
       console.log("Waiting for map to load");
-      map.once('load', () => {
-        console.log("Map loaded, adding trails");
-        addTrails();
-      });
+      map.once('load', handleMapLoad);
     }
     
     map.on('error', (e: any) => {
       console.error("Mapbox error:", e);
     });
-  }, [trailFeatures, mapCenter, trailCollection]);
+  }, [trailFeatures, peakFeatures, mapCenter, trailCollection]);
 
   // Ensure mapbox-gl canvas resizes when container height changes (web)
   useEffect(() => {
@@ -356,11 +448,14 @@ export default function Index() {
             >
               <Text style={styles.authButtonText}>My Profile</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert("Sign up", "Not implemented yet")}> 
+            <TouchableOpacity style={styles.authButton} onPress={() => login()}> 
+              <Text style={styles.authButtonText}>Log in</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.authButton} onPress={() => register()}>
               <Text style={styles.authButtonText}>Sign up</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => Alert.alert("Log in", "Not implemented yet")}> 
-              <Text style={styles.authButtonText}>Log in</Text>
+            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
+              <Text style={styles.authButtonText}>Log out</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -384,12 +479,15 @@ export default function Index() {
                     <TouchableOpacity
                       key={s}
                       style={[sidebarCollapsed ? styles.menuItemCollapsed : styles.menuItem, isLoading && styles.menuItemLoading]}
-                      onPress={() =>
-                        
-                        
-                        
-                        
-                        triggerService(s)}
+                      onPress={() => {
+                        if (s === "badge-service") {
+                          router.push("/badge-service");
+                        } else if (s === "activity-service") {
+                          router.push("/activity-service");
+                        } else {
+                          triggerService(s);
+                        }
+                      }}
                       activeOpacity={0.7}
                       onLayout={!sidebarCollapsed ? (e) => {
                         const w = e.nativeEvent.layout.width;
@@ -421,16 +519,16 @@ export default function Index() {
           <View style={styles.rightColumn}>
             <View style={styles.searchBarContainer}>
               <TextInput
-                placeholder="Search for trails..."
+                placeholder="Search for trails and peaks..."
                 placeholderTextColor="#666"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                onSubmitEditing={fetchTrails}
+                onSubmitEditing={() => { fetchTrails(); fetchPeaks(); }}
                 returnKeyType="search"
                 style={styles.searchInput}
               />
-              <TouchableOpacity style={styles.searchButton} onPress={fetchTrails} disabled={trailLoading}>
-                <Text style={styles.searchButtonText}>{trailLoading ? "…" : "🔍"}</Text>
+              <TouchableOpacity style={styles.searchButton} onPress={() => { fetchTrails(); fetchPeaks(); }} disabled={trailLoading || peakLoading}>
+                <Text style={styles.searchButtonText}>{(trailLoading || peakLoading) ? "…" : "🔍"}</Text>
               </TouchableOpacity>
             </View>
             {/* Mapbox Map - Native platforms */}
@@ -449,9 +547,17 @@ export default function Index() {
                       />
                     </ShapeSource>
                   )}
-                  <PointAnnotation id="marker1" coordinate={[14.5058, 46.3787]}>
-                    <View style={styles.markerContainer}><Text style={styles.markerText}>📍</Text></View>
-                  </PointAnnotation>
+                  {peakFeatures.map((peak: any, idx: number) => (
+                    <PointAnnotation
+                      key={`peak-${peak.properties.id ?? idx}`}
+                      id={`peak-${peak.properties.id ?? idx}`}
+                      coordinate={peak.geometry.coordinates}
+                    >
+                      <View style={styles.peakMarkerContainer}>
+                        <Text style={styles.peakMarkerText}>📍</Text>
+                      </View>
+                    </PointAnnotation>
+                  ))}
                 </MapView>
               </View>
             )}
@@ -460,28 +566,64 @@ export default function Index() {
             {Platform.OS === 'web' && (
               <div style={{ width: '100%', height: leftPanelHeight || 400, borderRadius: 8, overflow: 'hidden' }} ref={webMapRef} />
             )}
+
+            {(trailFeatures.length > 0 || peakFeatures.length > 0) && (
+              <View style={styles.listsRow}>
+                {trailFeatures.length > 0 && (
+                  <View style={styles.listColumn}>
+                    <View style={styles.trailsListContainer}>
+                      <Text style={styles.trailsListHeader}>Trails ({trailFeatures.length})</Text>
+                      <ScrollView style={styles.trailsScroll}>
+                        {trailFeatures.map((f: any, idx: number) => (
+                          <View key={`${f?.properties?.name ?? idx}-${idx}`} style={styles.trailItem}>
+                            <View style={[styles.trailColorDot, { backgroundColor: f?.properties?.color ?? '#999' }]} />
+                            <Text style={styles.trailName}>
+                              {f?.properties?.name ?? `Trail ${idx + 1}`}
+                              {typeof f?.properties?.lengthKm === 'number'
+                                ? ` (${Number(f?.properties?.lengthKm).toFixed(2)} km)`
+                                : ''}
+                            </Text>
+                            <TouchableOpacity
+                              style={styles.addToActivityButton}
+                              onPress={() => router.push({
+                                pathname: "/activity-service",
+                                params: { trailName: f?.properties?.name ?? `Trail ${idx + 1}` }
+                              })}
+                            >
+                              <Text style={styles.addToActivityButtonText}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </View>
+                )}
+
+                {peakFeatures.length > 0 && (
+                  <View style={styles.listColumn}>
+                    <View style={styles.trailsListContainer}>
+                      <Text style={styles.trailsListHeader}>Peaks ({peakFeatures.length})</Text>
+                      <ScrollView style={styles.trailsScroll}>
+                        {peakFeatures.map((f: any, idx: number) => (
+                          <View key={`${f?.properties?.id ?? idx}-${idx}`} style={styles.trailItem}>
+                            <Text style={styles.peakMarkerText}>📍</Text>
+                            <Text style={styles.trailName}>
+                              {f?.properties?.name ?? `Peak ${idx + 1}`}
+                              {typeof f?.properties?.elevationM === 'number'
+                                ? ` (${Number(f?.properties?.elevationM).toFixed(0)} m)`
+                                : ''}
+                              {f?.properties?.territory ? ` - ${f.properties.territory}` : ''}
+                            </Text>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         </View>
-
-        {/* Scrollable list of displayed trails (hidden when none) */}
-        {trailFeatures.length > 0 && (
-          <View style={styles.trailsListContainer}>
-            <Text style={styles.trailsListHeader}>Trails ({trailFeatures.length})</Text>
-            <ScrollView style={styles.trailsScroll}>
-              {trailFeatures.map((f: any, idx: number) => (
-                <View key={`${f?.properties?.name ?? idx}-${idx}`} style={styles.trailItem}>
-                  <View style={[styles.trailColorDot, { backgroundColor: f?.properties?.color ?? '#999' }]} />
-                  <Text style={styles.trailName}>
-                    {f?.properties?.name ?? `Trail ${idx + 1}`}
-                    {typeof f?.properties?.lengthKm === 'number'
-                      ? ` (${Number(f?.properties?.lengthKm).toFixed(2)} km)`
-                      : ''}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
         <View style={styles.responseBox}>
           <Text style={styles.responseLabel}>Last response</Text>
@@ -643,6 +785,17 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   markerContainer: { alignItems: "center", justifyContent: "center" },
   markerText: { fontSize: 30 },
+  peakMarkerContainer: { alignItems: "center", justifyContent: "center" },
+  peakMarkerText: { fontSize: 24 },
+  listsRow: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginTop: 12,
+  },
+  listColumn: {
+    flex: 1,
+  },
   content: { flex: 1, padding: 18, alignItems: "flex-start" },
   headerBar: {
     width: "100%",
@@ -695,5 +848,17 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
   trailColorDot: { width: 14, height: 14, borderRadius: 7, marginRight: 8 },
-  trailName: { fontSize: 15, color: "#222" },
+  trailName: { fontSize: 15, color: "#222", flex: 1 },
+  addToActivityButton: {
+    backgroundColor: "#34C759",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  addToActivityButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16,
+  },
 });
