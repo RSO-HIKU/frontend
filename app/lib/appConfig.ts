@@ -15,3 +15,13 @@ export type ServiceName = keyof typeof AppConfig.services;
 export const getServiceUrl = (serviceName: ServiceName): string => {
   return AppConfig.services[serviceName];
 };
+
+export const appConfig = {
+  env: process.env.EXPO_PUBLIC_ENV ?? "dev",
+  keycloak: {
+    url: process.env.EXPO_PUBLIC_KEYCLOAK_URL!,      // e.g. http://localhost:8080/auth (dev)
+    realm: process.env.EXPO_PUBLIC_KEYCLOAK_REALM!,  // e.g. hiku-dev
+    clientId: process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID ?? "hiku-web",
+  },
+  apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL!, // e.g. http://127.0.0.1:63053
+};

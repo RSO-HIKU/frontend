@@ -15,9 +15,12 @@ import {
   ScrollView,
 } from "react-native";
 import Constants from "expo-constants";
-import { fetchTrails as apiFetchTrails, fetchPeaks as apiFetchPeaks } from "./lib/api";
+import { createApi } from "./lib/api";
 import { assignDistinctColors } from "./utils/colors";
 import type { TrailFeature, TrailDto } from "./types/trails";
+
+import { appConfig } from "./lib/appConfig";
+import { useAuth } from "./context/AuthContext";
 
 // Import Mapbox for native platforms
 let Mapbox: any, MapView: any, Camera: any, PointAnnotation: any, ShapeSource: any, LineLayer: any;
@@ -101,6 +104,14 @@ export default function Index() {
   const [peakFeatures, setPeakFeatures] = useState<any[]>([]);
   const [peakLoading, setPeakLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([14.5058, 46.3787]);
+  const { ready, authenticated, login, logout, getToken } = useAuth();
+  const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!authenticated) router.replace("/login");
+  }, [ready, authenticated]);
+
   const trailCollection = useMemo(
     () => ({ type: "FeatureCollection", features: trailFeatures ?? [] }),
     [trailFeatures]
@@ -145,7 +156,7 @@ export default function Index() {
       const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
       const base = cfg.baseUrl ?? BASE_URL;
       console.log("Fetching trails from", base, "query:", searchQuery);
-      const data: TrailDto[] = await apiFetchTrails(base, searchQuery);
+      const data: TrailDto[] = await api.fetchTrails(searchQuery);
       console.log("Raw API response:", data);
 
       let features: TrailFeature[] = Array.isArray(data)
@@ -180,7 +191,7 @@ export default function Index() {
     } finally {
       setTrailLoading(false);
     }
-  }, [BASE_URL, searchQuery]);
+  }, [BASE_URL, searchQuery, api]);
 
   const fetchPeaks = useCallback(async () => {
     setPeakLoading(true);
@@ -188,7 +199,7 @@ export default function Index() {
       const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
       const base = cfg.baseUrl ?? BASE_URL;
       console.log("Fetching peaks from", base, "query:", searchQuery);
-      const data = await apiFetchPeaks(base, searchQuery);
+      const data = await api.fetchPeaks(searchQuery);
       console.log("Raw peaks API response:", data);
 
       const features = Array.isArray(data)
@@ -436,11 +447,14 @@ export default function Index() {
             >
               <Text style={styles.authButtonText}>My Profile</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert("Sign up", "Not implemented yet")}> 
+            <TouchableOpacity style={styles.authButton} onPress={() => login()}> 
+              <Text style={styles.authButtonText}>Log in</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.authButton} onPress={() => register()}>
               <Text style={styles.authButtonText}>Sign up</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => Alert.alert("Log in", "Not implemented yet")}> 
-              <Text style={styles.authButtonText}>Log in</Text>
+            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
+              <Text style={styles.authButtonText}>Log out</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -16,7 +16,9 @@ import {
   Modal,
 } from "react-native";
 import Constants from "expo-constants";
-import { fetchPeaks } from "./lib/api";
+import { createApi } from "./lib/api";
+import { appConfig } from "./lib/appConfig";
+import { useAuth } from "./context/AuthContext";
 import type { PeakDto } from "./lib/api";
 import type { LogbookEntry } from "./types/peaks";
 
@@ -84,7 +86,15 @@ export default function BadgeServicePage() {
   const [selectedPeak, setSelectedPeak] = useState<PeakDto | null>(null);
   const [notesInput, setNotesInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  const { ready, authenticated, login, logout, getToken } = useAuth();
+  const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
   
+  useEffect(() => {
+      if (!ready) return;
+      if (!authenticated) router.replace("/login");
+    }, [ready, authenticated]);
+
   const userId = 1; // hardcoded for now
 
   const triggerService = useCallback(async (serviceName: string) => {
@@ -115,7 +125,7 @@ export default function BadgeServicePage() {
     try {
       const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
       const base = cfg.baseUrl ?? BASE_URL;
-      const data: PeakDto[] = await fetchPeaks(base, peakSearchQuery);
+      const data: PeakDto[] = await api.fetchPeaks(peakSearchQuery);
       setPeakSearchResults(data);
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Failed to fetch peaks");
