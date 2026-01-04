@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { feedApi, Post } from "./lib/feedApi";
@@ -68,6 +68,12 @@ export default function SocialFeed() {
           <View style={styles.post}>
             <Text style={styles.user}>{item.username}</Text>
             <Text style={styles.title}>{item.title}</Text>
+            {item.postimageurl && (
+              <Image
+                source={{ uri: item.postimageurl }}
+                style={styles.postImage}
+              />
+            )}
             <Text style={styles.text}>{item.content}</Text>
             <Text style={styles.date}>
               {new Date(item.createdAt).toLocaleDateString()}
@@ -114,6 +120,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 6,
+    marginVertical: 8,
   },
   user: { fontWeight: "700", marginBottom: 4 },
   title: { fontWeight: "600", marginBottom: 4, fontSize: 16 },

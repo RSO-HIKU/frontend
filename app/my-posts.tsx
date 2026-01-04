@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { feedApi, Post } from "./lib/feedApi";
 
 export default function MyPosts() {
@@ -10,10 +11,11 @@ export default function MyPosts() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const router = useRouter();
   const currentUserId = 2; // Replace with actual current user ID from auth context
-    const currentUsername = "ana"; // Replace with actual current username from auth context
+  const currentUsername = "ana"; // Replace with actual current username from auth context
   useEffect(() => {
     loadMyPosts();
   }, []);
@@ -32,6 +34,19 @@ export default function MyPosts() {
     }
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
   const handleCreatePost = async () => {
     if (!newTitle.trim() || !newContent.trim()) {
       Alert.alert("Title and content are required.");
@@ -39,14 +54,24 @@ export default function MyPosts() {
     }
     try {
       setCreating(true);
-      await feedApi.createPost({ userId: currentUserId, username:currentUsername
-        , title: newTitle, content: newContent });
+      let imageUrl = "";
+      if (selectedImage) {
+        imageUrl = await feedApi.uploadImage(selectedImage);
+      }
+      await feedApi.createPost({ 
+        userId: currentUserId, 
+        username: currentUsername,
+        title: newTitle, 
+        content: newContent,
+        postimageurl: imageUrl
+      });
       setModalVisible(false);
       setNewTitle("");
       setNewContent("");
+      setSelectedImage(null);
       loadMyPosts();
     } catch (err) {
-     alert("Failed to create post");
+      alert("Failed to create post");
     } finally {
       setCreating(false);
     }
@@ -90,6 +115,12 @@ export default function MyPosts() {
         renderItem={({ item }) => (
           <View style={styles.post}>
             <Text style={styles.title}>{item.title}</Text>
+            {item.postimageurl && (
+              <Image
+                source={{ uri: item.postimageurl }}
+                style={styles.postImage}
+              />
+            )}
             <Text style={styles.text}>{item.content}</Text>
             <Text style={styles.date}>
               {new Date(item.createdAt).toLocaleDateString()}
@@ -140,10 +171,27 @@ export default function MyPosts() {
               onChangeText={setNewContent}
               multiline
             />
+            <TouchableOpacity 
+              style={styles.imagePicker}
+              onPress={pickImage}
+            >
+              <Text style={styles.imagePickerText}>
+                {selectedImage ? "✓ Image Selected" : "Pick an Image"}
+              </Text>
+            </TouchableOpacity>
+            {selectedImage && (
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.selectedImagePreview}
+              />
+            )}
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: "#ccc" }]}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelectedImage(null);
+                }}
                 disabled={creating}
               >
                 <Text>Cancel</Text>
@@ -190,6 +238,12 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     position: "relative",
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 6,
+    marginVertical: 8,
   },
   title: { fontWeight: "600", marginBottom: 4, fontSize: 16 },
   text: { marginBottom: 8 },
@@ -239,5 +293,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 6,
     marginLeft: 8,
+  },
+  imagePicker: {
+    backgroundColor: "#E8F0FF",
+    borderWidth: 2,
+    borderColor: "#007AFF",
+    borderStyle: "dashed",
+    borderRadius: 8,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  imagePickerText: {
+    color: "#007AFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  selectedImagePreview: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 12,
   },
 });
