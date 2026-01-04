@@ -6,7 +6,7 @@ export default function UserProfile() {
   const [user, setUser] = useState<UserProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const userId = "1"; // Replace with dynamic user ID as needed
+  const userId = "3"; // Replace with dynamic user ID as needed
 
   useEffect(() => {
     const loadUser = async () => {

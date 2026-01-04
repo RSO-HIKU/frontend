@@ -7,13 +7,27 @@ export default function SocialFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const router = useRouter();
-  const currentUserId = 2; // Replace with actual current user ID from auth context
+  const currentUserId = 1; // Replace with actual current user ID from auth context
 
   useEffect(() => {
     loadFollowedPosts();
   }, []);
 
+  useEffect(() => {
+    posts.forEach((p) => {
+      if (p.postimageurl && !imageAspectRatios[p.postimageurl]) {
+        Image.getSize(
+          p.postimageurl,
+          (width, height) =>
+            setImageAspectRatios((prev) => ({ ...prev, [p.postimageurl]: width / height })),
+          (err) => console.warn("Failed to get image size:", err)
+        );
+      }
+    });
+  }, [posts]);
+  
   const loadFollowedPosts = async () => {
     try {
       setLoading(true);
@@ -71,7 +85,11 @@ export default function SocialFeed() {
             {item.postimageurl && (
               <Image
                 source={{ uri: item.postimageurl }}
-                style={styles.postImage}
+                style={[
+                  styles.postImage,
+                  { aspectRatio: imageAspectRatios[item.postimageurl] ?? 16 / 9 },
+                ]}
+                resizeMode="contain"
               />
             )}
             <Text style={styles.text}>{item.content}</Text>
@@ -123,7 +141,6 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: "100%",
-    height: 200,
     borderRadius: 6,
     marginVertical: 8,
   },

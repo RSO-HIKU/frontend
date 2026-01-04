@@ -32,7 +32,7 @@ export default function MyUserProfile() {
   const [searchResults, setSearchResults] = useState<UserProfileDto[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const userId = "2";
+  const userId = "1";
 
   useEffect(() => {
     const loadUser = async () => {

@@ -102,6 +102,8 @@ export const feedApi = {
 
   // Create a new post
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
+
+    console.log("Creating post with data: ", post);
     try {
       const response = await fetch(`${API_URL}/feed/post`, {
         method: "POST",
@@ -110,6 +112,7 @@ export const feedApi = {
           ...post,
           createdAt: new Date().toISOString().slice(0, 19),
           automated: false,
+          postimageurl: post.postimageurl,
         }),
       });
       if (!response.ok) {

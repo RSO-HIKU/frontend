@@ -13,12 +13,38 @@ export default function MyPosts() {
   const [newContent, setNewContent] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const router = useRouter();
-  const currentUserId = 2; // Replace with actual current user ID from auth context
-  const currentUsername = "ana"; // Replace with actual current username from auth context
+  const currentUserId = 1; // Replace with actual current user ID from auth context
+  const currentUsername = "janez"; // Replace with actual current username from auth context
   useEffect(() => {
     loadMyPosts();
   }, []);
+
+  useEffect(() => {
+    // compute aspect ratios for loaded posts
+    posts.forEach((p) => {
+      if (p.postimageurl && !imageAspectRatios[p.postimageurl]) {
+        Image.getSize(
+          p.postimageurl,
+          (width, height) =>
+            setImageAspectRatios((prev) => ({ ...prev, [p.postimageurl]: width / height })),
+          (err) => console.warn("Failed to get image size:", err)
+        );
+      }
+    });
+  }, [posts]);
+
+  useEffect(() => {
+    if (selectedImage && !imageAspectRatios[selectedImage]) {
+      Image.getSize(
+        selectedImage,
+        (width, height) =>
+          setImageAspectRatios((prev) => ({ ...prev, [selectedImage]: width / height })),
+        (err) => console.warn("Failed to get selected image size:", err)
+      );
+    }
+  }, [selectedImage]);
 
   const loadMyPosts = async () => {
     try {
@@ -57,6 +83,7 @@ export default function MyPosts() {
       let imageUrl = "";
       if (selectedImage) {
         imageUrl = await feedApi.uploadImage(selectedImage);
+    
       }
       await feedApi.createPost({ 
         userId: currentUserId, 
@@ -118,7 +145,11 @@ export default function MyPosts() {
             {item.postimageurl && (
               <Image
                 source={{ uri: item.postimageurl }}
-                style={styles.postImage}
+                style={[
+                  styles.postImage,
+                  { aspectRatio: imageAspectRatios[item.postimageurl] ?? 16 / 9 },
+                ]}
+                resizeMode="contain"
               />
             )}
             <Text style={styles.text}>{item.content}</Text>
@@ -182,7 +213,11 @@ export default function MyPosts() {
             {selectedImage && (
               <Image
                 source={{ uri: selectedImage }}
-                style={styles.selectedImagePreview}
+                style={[
+                  styles.selectedImagePreview,
+                  { aspectRatio: imageAspectRatios[selectedImage] ?? 4 / 3 },
+                ]}
+                resizeMode="contain"
               />
             )}
             <View style={styles.modalButtons}>
@@ -210,7 +245,7 @@ export default function MyPosts() {
     </View>
   );
 }
-
+  
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: "#fff" },
   headerContainer: {
@@ -241,9 +276,9 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: "100%",
-    height: 200,
     borderRadius: 6,
     marginVertical: 8,
+    // height removed to allow aspectRatio to control rendered height
   },
   title: { fontWeight: "600", marginBottom: 4, fontSize: 16 },
   text: { marginBottom: 8 },
@@ -311,8 +346,8 @@ const styles = StyleSheet.create({
   },
   selectedImagePreview: {
     width: "100%",
-    height: 150,
     borderRadius: 8,
     marginBottom: 12,
+    // height removed so aspectRatio/contain shows whole image
   },
 });
