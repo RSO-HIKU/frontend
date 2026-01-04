@@ -15,7 +15,7 @@ export const feedApi = {
   // Get posts from followed users
   async getFollowedPosts(userId: number): Promise<Post[]> {
     try {
-      const response = await fetch(`${API_URL}/followingPosts/${userId}`);
+      const response = await fetch(`${API_URL}/feed/followingPosts/${userId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch followed posts: ${response.status}`);
       }
@@ -29,7 +29,7 @@ export const feedApi = {
   // Get user's own posts
   async getUserPosts(userId: number): Promise<Post[]> {
     try {
-      const response = await fetch(`${API_URL}/post/user/${userId}`);
+      const response = await fetch(`${API_URL}/feed/post/user/${userId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch user posts: ${response.status}`);
       }
@@ -44,7 +44,7 @@ export const feedApi = {
 
   async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
     try {
-      const response = await fetch(`${API_URL}/post`, {
+      const response = await fetch(`${API_URL}/feed/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -67,7 +67,7 @@ export const feedApi = {
   // Delete a post
   async deletePost(postId: number): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/post/${postId}`, {
+      const response = await fetch(`${API_URL}/feed/post/${postId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -82,7 +82,7 @@ export const feedApi = {
   // ...existing code...
   async getMyPosts(userId: number): Promise<Post[]> {
     try {
-      const response = await fetch(`${API_URL}/postFrom/${userId}`);
+      const response = await fetch(`${API_URL}/feed/postFrom/${userId}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch my posts: ${response.status}`);
       }
