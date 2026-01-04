@@ -21,18 +21,13 @@ export const feedApi = {
     try {
       let blob: Blob;
 
-      // Handle web vs native platforms differently
       if (Platform.OS === "web") {
-        // On web, fetch the file directly from the URI
         const response = await fetch(imageUri);
         blob = await response.blob();
       } else {
-        // On native platforms, use FileSystem to read as base64
         const base64Data = await FileSystem.readAsStringAsync(imageUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
-        
-        // Convert base64 to binary
         const byteCharacters = atob(base64Data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -45,27 +40,34 @@ export const feedApi = {
       const formData = new FormData();
       formData.append("file", blob, "photo.jpg");
 
-      // DON'T set Content-Type header - let fetch handle it
+      console.log(`[uploadImage] Sending to: ${IMAGE_FUNCTION_URL}`);
+      
       const uploadResponse = await fetch(IMAGE_FUNCTION_URL, {
         method: "POST",
         body: formData,
       });
 
+      console.log(`[uploadImage] Status: ${uploadResponse.status}`);
+      console.log(`[uploadImage] Status Text: ${uploadResponse.statusText}`);
+      
+      // Log all response headers
+      const corsOrigin = uploadResponse.headers.get("Access-Control-Allow-Origin");
+      const corsMethods = uploadResponse.headers.get("Access-Control-Allow-Methods");
+      console.log(`[uploadImage] CORS Origin: ${corsOrigin}`);
+      console.log(`[uploadImage] CORS Methods: ${corsMethods}`);
+      console.log(`[uploadImage] All Headers:`, Array.from(uploadResponse.headers.entries()));
+
       if (!uploadResponse.ok) {
-        let errorMessage = `Image upload failed: ${uploadResponse.status}`;
-        try {
-          const error = await uploadResponse.json();
-          errorMessage += ` - ${error.error}`;
-        } catch {
-          errorMessage += ` - ${uploadResponse.statusText}`;
-        }
-        throw new Error(errorMessage);
+        const errorData = await uploadResponse.text();
+        console.error(`[uploadImage] Error response: ${errorData}`);
+        throw new Error(`Image upload failed: ${uploadResponse.status} - ${errorData}`);
       }
 
       const data = await uploadResponse.json();
+      console.log(`[uploadImage] Success! URL: ${data.url}`);
       return data.url;
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("[uploadImage] Exception:", error);
       throw error;
     }
   },
