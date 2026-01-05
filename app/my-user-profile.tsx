@@ -168,8 +168,8 @@ const handleFollowUser = async (targetUserId: string) => {
         <Image source={{ uri: "https://picsum.photos/200" }} style={styles.avatar} />
         {editing ? (
           <>
-            <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="Username" />
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" />
+            <TextInput style={[styles.input, styles.disabledInput]} value={username} editable={false} placeholder="Username" />
+            <TextInput style={[styles.input, styles.disabledInput]} value={email} editable={false} placeholder="Email" />
             <TextInput
               style={styles.input}
               value={age !== undefined ? age.toString() : ""}
@@ -359,6 +359,7 @@ const styles = StyleSheet.create({
   buttonContainer: { marginVertical: 8, borderRadius: 8, overflow: "hidden" },
   bioInput: { height: 100 },
   input: { width: 250, height: 40, borderColor: "#ccc", borderWidth: 1, borderRadius: 8, marginBottom: 10, paddingHorizontal: 8 },
+  disabledInput: { backgroundColor: "#f0f0f0", color: "#999" },
   listItem: { padding: 12, borderBottomWidth: 1, borderColor: "#eee", width: "100%", alignItems: "center" },
   
   // Modal styles
