@@ -7,6 +7,13 @@ import { Ionicons } from '@expo/vector-icons';
 type TabType = "challenges" | "badgeScoreboard" | "challengeScoreboard";
 
 export default function ScoreboardsAndChallenges() {
+  console.log("[ScoreboardsAndChallenges] component render start");
+  console.log("[ScoreboardsAndChallenges] auth getters available:", { getUserId: !!useAuth()?.getUserId, getToken: !!useAuth()?.getToken });
+   
+  const { getUserId, getToken } = useAuth();
+  const currentUserId = getUserId();
+  console.log("[ScoreboardsAndChallenges] currentUserId:", currentUserId);
+
   const [activeTab, setActiveTab] = useState<TabType>("challenges");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [badgeScoreboard, setBadgeScoreboard] = useState<ScoreboardEntry[]>([]);
@@ -14,68 +21,85 @@ export default function ScoreboardsAndChallenges() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const { getUserId, getToken } = useAuth();
-  const currentUserId = getUserId();
 
   useEffect(() => {
+    console.log("[ScoreboardsAndChallenges] useEffect activeTab changed:", activeTab);
     loadData();
   }, [activeTab]);
 
   const loadData = async () => {
+    console.log("[loadData] start", { activeTab, currentUserId });
     if (!currentUserId) {
+      console.warn("[loadData] no currentUserId, aborting");
       setError("User not authenticated");
       setLoading(false);
       return;
     }
 
     try {
+      console.log("[loadData] fetching data for tab:", activeTab);
       setLoading(true);
       setError(null);
 
       if (activeTab === "challenges") {
+        console.log("[loadData] calling scoreboardApi.getChallenges");
         const challengesData = await scoreboardApi.getChallenges(currentUserId, getToken);
+        console.log("[loadData] received challenges:", challengesData);
         setChallenges(challengesData);
       } else if (activeTab === "badgeScoreboard") {
+        console.log("[loadData] calling getChallengeScoreboard to build user list");
         // Get challenge scoreboard first to get user IDs
         const challengeData = await scoreboardApi.getChallengeScoreboard(undefined, undefined, 20, getToken);
+        console.log("[loadData] challengeScoreboard:", challengeData);
         const userIds = challengeData.map(entry => entry.userId);
         
         // Add current user if not in list
         if (!userIds.includes(currentUserId)) {
+          console.log("[loadData] adding currentUserId to userIds");
           userIds.push(currentUserId);
         }
 
+        console.log("[loadData] calling scoreboardApi.getBadgeScoreboard with userIds:", userIds);
         const badgeData = await scoreboardApi.getBadgeScoreboard(userIds, undefined, undefined, getToken);
+        console.log("[loadData] received badgeScoreboard:", badgeData);
         setBadgeScoreboard(badgeData);
       } else if (activeTab === "challengeScoreboard") {
+        console.log("[loadData] calling getChallengeScoreboard");
         const scoreboardData = await scoreboardApi.getChallengeScoreboard(undefined, undefined, 20, getToken);
+        console.log("[loadData] received challengeScoreboard:", scoreboardData);
         setChallengeScoreboard(scoreboardData);
       }
     } catch (err) {
+      console.error("[loadData] error:", err);
       setError("Failed to load data");
-      console.error(err);
     } finally {
+      console.log("[loadData] finished");
       setLoading(false);
       setRefreshing(false);
     }
   };
 
   const onRefresh = () => {
+    console.log("[onRefresh] triggered");
     setRefreshing(true);
     loadData();
   };
 
   const handleCompleteChallenge = async (challengeId: number) => {
+    console.log("[handleCompleteChallenge] called", { challengeId, currentUserId });
     if (!currentUserId) return;
 
     try {
+      console.log("[handleCompleteChallenge] calling scoreboardApi.completeChallenge", { userId: currentUserId, challengeId });
       await scoreboardApi.completeChallenge(currentUserId, challengeId, getToken);
+      console.log("[handleCompleteChallenge] completeChallenge API call succeeded");
       // Reload challenges to update the UI
+      console.log("[handleCompleteChallenge] reloading challenges after completion");
       const challengesData = await scoreboardApi.getChallenges(currentUserId, getToken);
+      console.log("[handleCompleteChallenge] reloaded challenges:", challengesData);
       setChallenges(challengesData);
     } catch (err) {
-      console.error("Failed to complete challenge:", err);
+      console.error("[handleCompleteChallenge] Failed to complete challenge:", err);
       alert("Failed to mark challenge as completed");
     }
   };
@@ -89,7 +113,10 @@ export default function ScoreboardsAndChallenges() {
         ) : (
           <TouchableOpacity
             style={styles.completeButton}
-            onPress={() => handleCompleteChallenge(item.id)}
+            onPress={() => {
+              console.log("[renderChallenge] Complete pressed", { id: item.id, title: item.title });
+              handleCompleteChallenge(item.id);
+            }}
           >
             <Text style={styles.completeButtonText}>Complete</Text>
           </TouchableOpacity>
