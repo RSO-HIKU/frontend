@@ -14,6 +14,7 @@ type AuthCtx = {
   getToken: () => Promise<string | null>;
   getUserId: () => string | null;
   getUserInfo: () => { email?: string; username?: string; fullName?: string } | null;
+  getUsername: () => string | null; // Add this
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -131,8 +132,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }
 
+  function getUsername(): string | null {
+    if (!kc) return null;
+    const parsed = (kc as any).tokenParsed;
+    if (!parsed) return null;
+    return parsed.preferred_username || parsed.username || parsed.name || null;
+  }
+
   return (
-    <Ctx.Provider value={{ ready, authenticated, needsProfile, checkProfile, login, logout, register, getToken, getUserId, getUserInfo }}>
+    <Ctx.Provider value={{ ready, authenticated, needsProfile, checkProfile, login, logout, register, getToken, getUserId, getUserInfo, getUsername }}>
       {children}
     </Ctx.Provider>
   );

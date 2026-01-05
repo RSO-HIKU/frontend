@@ -10,9 +10,10 @@ export default function ScoreboardsAndChallenges() {
   console.log("[ScoreboardsAndChallenges] component render start");
   console.log("[ScoreboardsAndChallenges] auth getters available:", { getUserId: !!useAuth()?.getUserId, getToken: !!useAuth()?.getToken });
    
-  const { getUserId, getToken } = useAuth();
+  const { getUserId, getToken, getUsername } = useAuth(); // Add getUsername
   const currentUserId = getUserId();
-  console.log("[ScoreboardsAndChallenges] currentUserId:", currentUserId);
+  const currentUsername = getUsername(); // Get current username
+  console.log("[ScoreboardsAndChallenges] currentUserId:", currentUserId, "username:", currentUsername);
 
   const [activeTab, setActiveTab] = useState<TabType>("challenges");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -86,12 +87,12 @@ export default function ScoreboardsAndChallenges() {
   };
 
   const handleCompleteChallenge = async (challengeId: number) => {
-    console.log("[handleCompleteChallenge] called", { challengeId, currentUserId });
-    if (!currentUserId) return;
+    console.log("[handleCompleteChallenge] called", { challengeId, currentUserId, currentUsername });
+    if (!currentUserId || !currentUsername) return;
 
     try {
-      console.log("[handleCompleteChallenge] calling scoreboardApi.completeChallenge", { userId: currentUserId, challengeId });
-      await scoreboardApi.completeChallenge(currentUserId, challengeId, getToken);
+      console.log("[handleCompleteChallenge] calling scoreboardApi.completeChallenge", { userId: currentUserId, challengeId, username: currentUsername });
+      await scoreboardApi.completeChallenge(currentUserId, challengeId, currentUsername, getToken);
       console.log("[handleCompleteChallenge] completeChallenge API call succeeded");
       // Reload challenges to update the UI
       console.log("[handleCompleteChallenge] reloading challenges after completion");
@@ -135,6 +136,7 @@ export default function ScoreboardsAndChallenges() {
     const isCurrentUser = item.userId === currentUserId;
     const score = item.badgeCount !== undefined ? item.badgeCount : item.completedChallenges || 0;
     const label = item.badgeCount !== undefined ? "badges" : "challenges";
+    const displayName = item.username || `User ${item.userId}`; // Use username if available
 
     return (
       <View style={[styles.scoreboardEntry, isCurrentUser && styles.currentUserEntry]}>
@@ -143,7 +145,7 @@ export default function ScoreboardsAndChallenges() {
         </View>
         <View style={styles.scoreboardInfo}>
           <Text style={[styles.userIdText, isCurrentUser && styles.currentUserText]}>
-            User {item.userId} {isCurrentUser && "(You)"}
+            {displayName} {isCurrentUser && "(You)"}
           </Text>
           <Text style={styles.scoreText}>
             {score} {label}

@@ -11,6 +11,7 @@ export interface Challenge {
 
 export interface ScoreboardEntry {
   userId: string;
+  username?: string; // Add this field
   completedChallenges?: number;
   badgeCount?: number;
 }
@@ -47,19 +48,25 @@ export const scoreboardApi = {
   async completeChallenge(
     userId: string,
     challengeId: number,
-    getToken?: () => Promise<string | null>
-  ): Promise<any> {
-    const url = `${BASE_URL}/challenges/complete`;
-    const res = await authFetch(
-      url,
-      {
-        method: "POST",
-        body: JSON.stringify({ userId, challengeId }),
+    username: string,
+    getToken: () => Promise<string | null>
+  ): Promise<void> {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    const response = await fetch(`${BASE_URL}/challenges/complete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
-      getToken
-    );
-    if (!res.ok) throw new Error(`Failed to complete challenge: ${res.status}`);
-    return res.json();
+      body: JSON.stringify({ userId, challengeId, username }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to complete challenge');
+    }
   },
 
   async getChallengeScoreboard(
