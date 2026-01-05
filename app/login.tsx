@@ -4,12 +4,19 @@ import { router } from "expo-router";
 import { useAuth } from "./context/AuthContext";
 
 export default function Login() {
-  const { ready, authenticated, login, register } = useAuth();
+  const { ready, authenticated, needsProfile, login, register } = useAuth();
 
   useEffect(() => {
     if (!ready) return;
-    if (authenticated) router.replace("/"); // already signed in
-  }, [ready, authenticated]);
+    
+    if (authenticated) {
+      if (needsProfile) {
+        router.replace("/finish-signup");
+      } else {
+        router.replace("/");
+      }
+    }
+  }, [ready, authenticated, needsProfile]);
 
   if (!ready) {
     return (

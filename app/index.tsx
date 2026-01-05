@@ -105,13 +105,17 @@ export default function Index() {
   const [peakFeatures, setPeakFeatures] = useState<any[]>([]);
   const [peakLoading, setPeakLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([14.5058, 46.3787]);
-  const { ready, authenticated, login, logout, register, getToken } = useAuth();
+  const { ready, authenticated, needsProfile, login, logout, register, getToken } = useAuth();
   const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
 
   useEffect(() => {
     if (!ready) return;
-    if (!authenticated) router.replace("/login");
-  }, [ready, authenticated]);
+    if (!authenticated) {
+      router.replace("/login");
+    } else if (needsProfile) {
+      router.replace("/finish-signup");
+    }
+  }, [ready, authenticated, needsProfile]);
 
   const trailCollection = useMemo(
     () => ({ type: "FeatureCollection", features: trailFeatures ?? [] }),

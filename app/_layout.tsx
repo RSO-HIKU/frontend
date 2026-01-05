@@ -18,6 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="social-feed" options={{ title: "Social Feed" }} />
         <Stack.Screen name="user-profile" options={{ title: "User Profile" }} />
         <Stack.Screen name="my-user-profile" options={{ title: "My User Profile" }} />
+        <Stack.Screen name="finish-signup" options={{ title: "Complete Your Profile" }} />
       </Stack>
     </AuthProvider>
   );

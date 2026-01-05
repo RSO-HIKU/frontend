@@ -4,12 +4,44 @@ export type UserProfileDto = {
   id: string;
   username: string;
   email?: string;
-    age?: number;
-    fullName?: string;
-    bio?: string;
-
+  age?: number;
+  fullName?: string;
+  bio?: string;
 };
+
+export type CreateUserDto = {
+  id: string;
+  username: string;
+  email: string;
+  fullName?: string;
+  bio?: string;
+  age?: number;
+};
+
 const API_URL = getServiceUrl("/api/user");
+
+export async function checkUserExists(userId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/user/${encodeURIComponent(userId)}`);
+    return res.ok;
+  } catch (error) {
+    console.error("Error checking user existence:", error);
+    return false;
+  }
+}
+
+export async function createUserProfile(userData: CreateUserDto): Promise<UserProfileDto> {
+  const res = await fetch(`${API_URL}/user`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(userData),
+  });
+
+  if (!res.ok) throw new Error(`User creation failed: ${res.status}`);
+  return res.json();
+}
 
 export async function fetchUserProfile(userId: string): Promise<UserProfileDto> {
   const res = await fetch(`${API_URL}/user/${encodeURIComponent(userId)}`);

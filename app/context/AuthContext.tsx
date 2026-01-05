@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
 import { getKeycloak } from "../lib/keycloak";
+import { checkUserExists } from "../lib/userApi";
 
 type AuthCtx = {
   ready: boolean;
   authenticated: boolean;
+  needsProfile: boolean;
+  checkProfile: () => Promise<void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   register: () => Promise<void>;
   getToken: () => Promise<string | null>;
-  getUserId: () => string | null; // keep nullable
+  getUserId: () => string | null;
+  getUserInfo: () => { email?: string; username?: string; fullName?: string } | null;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -17,8 +21,19 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const [needsProfile, setNeedsProfile] = useState(false);
 
   const kc = useMemo(() => (Platform.OS === "web" ? getKeycloak() : null), []);
+
+  async function checkProfile() {
+    if (!kc || !authenticated) return;
+    
+    const userId = (kc as any).tokenParsed?.sub;
+    if (!userId) return;
+
+    const exists = await checkUserExists(userId);
+    setNeedsProfile(!exists);
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -47,6 +62,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted) {
         setAuthenticated(ok);
         setReady(true);
+        
+        if (ok) {
+          // Check if user profile exists in database
+          const userId = (kc as any).tokenParsed?.sub;
+          if (userId) {
+            const exists = await checkUserExists(userId);
+            setNeedsProfile(!exists);
+          }
+        }
       }
     }
 
@@ -95,8 +119,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return (kc as any).tokenParsed?.sub ?? null;
   }
 
+  function getUserInfo(): { email?: string; username?: string; fullName?: string } | null {
+    if (!kc) return null;
+    const parsed = (kc as any).tokenParsed;
+    if (!parsed) return null;
+    
+    return {
+      email: parsed.email,
+      username: parsed.preferred_username || parsed.username,
+      fullName: parsed.name,
+    };
+  }
+
   return (
-    <Ctx.Provider value={{ ready, authenticated, login, logout, register, getToken, getUserId }}>
+    <Ctx.Provider value={{ ready, authenticated, needsProfile, checkProfile, login, logout, register, getToken, getUserId, getUserInfo }}>
       {children}
     </Ctx.Provider>
   );
