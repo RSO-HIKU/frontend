@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { View, Text, TextInput, StyleSheet, Image, ActivityIndicator, Button, ScrollView, Modal, FlatList, TouchableOpacity } from "react-native";
 import { 
   fetchUserProfile, 
@@ -11,8 +11,11 @@ import {
   UserProfileDto 
 } from "./lib/userApi";
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from "./context/AuthContext";
 
 export default function MyUserProfile() {
+  const { getUserId } = useAuth();
+  const userId = getUserId();
   const [user, setUser] = useState<UserProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -32,9 +35,15 @@ export default function MyUserProfile() {
   const [searchResults, setSearchResults] = useState<UserProfileDto[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const userId = "1";
-
   useEffect(() => {
+    if (userId === null) {
+      console.warn("User ID is null");
+      
+      // not authenticated — redirect or show message
+      return;
+    }else {
+      console.log("Fetching profile for userId:", userId);
+    }
     const loadUser = async () => {
       try {
         const data = await fetchUserProfile(userId);
@@ -52,11 +61,15 @@ export default function MyUserProfile() {
       }
     };
     loadUser();
-  }, []);
+  }, [userId]);
 
   const saveChanges = async () => {
     if (!user) return;
     try {
+      if (userId === null) {
+        alert("User not authenticated");
+        return;
+      }
       const updated = await updateUserProfile(userId, { username, email, age, bio });
       setUser(updated);
       setEditing(false);
@@ -70,6 +83,10 @@ export default function MyUserProfile() {
     setView("followers");
     setListLoading(true);
     try {
+            if (userId === null) {
+        alert("User not authenticated");
+        return;
+      }
       const data = await fetchFollowers(userId);
       setFollowers(data);
     } catch (err: any) {
@@ -83,6 +100,10 @@ export default function MyUserProfile() {
     setView("following");
     setListLoading(true);
     try {
+            if (userId === null) {
+        alert("User not authenticated");
+        return;
+      }
       const data = await fetchFollowing(userId);
       setFollowing(data);
     } catch (err: any) {
@@ -110,6 +131,10 @@ export default function MyUserProfile() {
 
 const handleFollowUser = async (targetUserId: string) => {
   try {
+          if (userId === null) {
+        alert("User not authenticated");
+        return;
+      }
     await followUser(userId, targetUserId);
     alert("Now following!");
     setSearchResults(searchResults.filter((u) => u.id !== targetUserId));
@@ -284,6 +309,10 @@ const handleFollowUser = async (targetUserId: string) => {
               accessibilityLabel={`Unfollow ${u.username}`}
               onPress={async () => {
                 try {
+                        if (userId === null) {
+        alert("User not authenticated");
+        return;
+      }
                   await unfollowUser(userId, u.id);
                   setFollowing(following.filter((f) => f.id !== u.id));
                 } catch (err: any) {
@@ -300,6 +329,10 @@ const handleFollowUser = async (targetUserId: string) => {
               accessibilityLabel={`Remove follower ${u.username}`}
               onPress={async () => {
                 try {
+                        if (userId === null) {
+        alert("User not authenticated");
+        return;
+      }
                   await unfollowUser(u.id, userId);
                   setFollowers(followers.filter((f) => f.id !== u.id));
                 } catch (err: any) {

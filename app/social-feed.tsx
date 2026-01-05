@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, 
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { feedApi, Post } from "./lib/feedApi";
+import { useAuth } from "./context/AuthContext";
 
 export default function SocialFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -9,7 +10,8 @@ export default function SocialFeed() {
   const [error, setError] = useState<string | null>(null);
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const router = useRouter();
-  const currentUserId = 1; // Replace with actual current user ID from auth context
+  const { getUserId } = useAuth();
+  const currentUserId = getUserId();
 
   useEffect(() => {
     loadFollowedPosts();
@@ -29,6 +31,11 @@ export default function SocialFeed() {
   }, [posts]);
   
   const loadFollowedPosts = async () => {
+    if (!currentUserId) {
+      setError("User not authenticated");
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);

@@ -9,6 +9,7 @@ type AuthCtx = {
   logout: () => Promise<void>;
   register: () => Promise<void>;
   getToken: () => Promise<string | null>;
+  getUserId: () => string | null; // keep nullable
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -89,8 +90,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return kc.token ?? null;
   }
 
+  function getUserId(): string | null {
+    if (!kc) return null;
+    return (kc as any).tokenParsed?.sub ?? null;
+  }
+
   return (
-    <Ctx.Provider value={{ ready, authenticated, login, logout, register, getToken }}>
+    <Ctx.Provider value={{ ready, authenticated, login, logout, register, getToken, getUserId }}>
       {children}
     </Ctx.Provider>
   );

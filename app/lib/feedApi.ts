@@ -4,7 +4,7 @@ import * as FileSystem from "expo-file-system/legacy";
 
 export interface Post {
   id: number;
-  userId: number;
+  userId: string;
   username: string;
   title: string;
   content: string;
@@ -73,7 +73,7 @@ export const feedApi = {
   },
 
   // Get posts from followed users
-  async getFollowedPosts(userId: number): Promise<Post[]> {
+  async getFollowedPosts(userId: string): Promise<Post[]> {
     try {
       const response = await fetch(`${API_URL}/feed/followingPosts/${userId}`);
       if (!response.ok) {
@@ -87,7 +87,7 @@ export const feedApi = {
   },
 
   // Get user's own posts
-  async getUserPosts(userId: number): Promise<Post[]> {
+  async getUserPosts(userId: string): Promise<Post[]> {
     try {
       const response = await fetch(`${API_URL}/feed/post/user/${userId}`);
       if (!response.ok) {
@@ -141,7 +141,7 @@ export const feedApi = {
   },
 
   // Get my posts
-  async getMyPosts(userId: number): Promise<Post[]> {
+  async getMyPosts(userId: string): Promise<Post[]> {
     try {
       const response = await fetch(`${API_URL}/feed/postFrom/${userId}`);
       if (!response.ok) {

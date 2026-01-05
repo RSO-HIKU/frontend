@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { feedApi, Post } from "./lib/feedApi";
+import { useAuth } from "./context/AuthContext";
+import { fetchUserProfile } from "./lib/userApi";
 
 export default function MyPosts() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -15,11 +17,16 @@ export default function MyPosts() {
   const [creating, setCreating] = useState(false);
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const router = useRouter();
-  const currentUserId = 1; // Replace with actual current user ID from auth context
-  const currentUsername = "janez"; // Replace with actual current username from auth context
+  const { getUserId } = useAuth();
+  const currentUserId = getUserId();
+  const [currentUsername, setCurrentUsername] = useState<string>("user");
+  
   useEffect(() => {
+    if (currentUserId) {
+      fetchUserProfile(currentUserId).then(user => setCurrentUsername(user.username)).catch(console.error);
+    }
     loadMyPosts();
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
     // compute aspect ratios for loaded posts
@@ -47,6 +54,11 @@ export default function MyPosts() {
   }, [selectedImage]);
 
   const loadMyPosts = async () => {
+    if (!currentUserId) {
+      setError("User not authenticated");
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -74,6 +86,10 @@ export default function MyPosts() {
   };
 
   const handleCreatePost = async () => {
+    if (!currentUserId) {
+      Alert.alert("User not authenticated");
+      return;
+    }
     if (!newTitle.trim() || !newContent.trim()) {
       Alert.alert("Title and content are required.");
       return;
