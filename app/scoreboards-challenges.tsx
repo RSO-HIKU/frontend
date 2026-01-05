@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { scoreboardApi, Challenge, ScoreboardEntry } from "./lib/scoreboardApi";
 import { useAuth } from "./context/AuthContext";
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from "expo-router";
 
 type TabType = "challenges" | "badgeScoreboard" | "challengeScoreboard";
 
 export default function ScoreboardsAndChallenges() {
+  const router = useRouter();
   console.log("[ScoreboardsAndChallenges] component render start");
   console.log("[ScoreboardsAndChallenges] auth getters available:", { getUserId: !!useAuth()?.getUserId, getToken: !!useAuth()?.getToken });
    
@@ -144,9 +146,11 @@ export default function ScoreboardsAndChallenges() {
           <Text style={styles.rankText}>#{index + 1}</Text>
         </View>
         <View style={styles.scoreboardInfo}>
-          <Text style={[styles.userIdText, isCurrentUser && styles.currentUserText]}>
-            {displayName} {isCurrentUser && "(You)"}
-          </Text>
+          <TouchableOpacity onPress={() => router.push({ pathname: "/user-profile", params: { userId: item.userId } })}>
+            <Text style={[styles.userIdText, isCurrentUser && styles.currentUserText, !isCurrentUser && styles.clickableUsername]}>
+              {displayName} {isCurrentUser && "(You)"}
+            </Text>
+          </TouchableOpacity>
           <Text style={styles.scoreText}>
             {score} {label}
           </Text>
@@ -399,6 +403,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     marginBottom: 4,
+  },
+  clickableUsername: {
+    color: "#007AFF",
+    textDecorationLine: "underline",
   },
   currentUserText: {
     color: "#007AFF",

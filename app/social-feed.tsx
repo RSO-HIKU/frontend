@@ -87,7 +87,9 @@ export default function SocialFeed() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.post}>
-            <Text style={styles.user}>{item.username}</Text>
+            <TouchableOpacity onPress={() => router.push({ pathname: "/user-profile", params: { userId: item.userId } })}>
+              <Text style={styles.user}>{item.username}</Text>
+            </TouchableOpacity>
             <Text style={styles.title}>{item.title}</Text>
             {item.postimageurl && (
               <Image
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginVertical: 8,
   },
-  user: { fontWeight: "700", marginBottom: 4 },
+  user: { fontWeight: "700", marginBottom: 4, color: "#007AFF", textDecorationLine: "underline" },
   title: { fontWeight: "600", marginBottom: 4, fontSize: 16 },
   text: { marginBottom: 8 },
   date: { color: "#999", fontSize: 12 },

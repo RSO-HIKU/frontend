@@ -12,10 +12,12 @@ import {
 } from "./lib/userApi";
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from "./context/AuthContext";
+import { useRouter } from "expo-router";
 
 export default function MyUserProfile() {
   const { getUserId } = useAuth();
   const userId = getUserId();
+  const router = useRouter();
   const [user, setUser] = useState<UserProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -302,7 +304,9 @@ const handleFollowUser = async (targetUserId: string) => {
     ) : (
       list.map((u) => (
         <View key={u.id} style={styles.listItem}>
-          <Text style={styles.name}>{u.username}</Text>
+          <TouchableOpacity onPress={() => router.push({ pathname: "/user-profile", params: { userId: u.id } })}>
+            <Text style={styles.clickableName}>{u.username}</Text>
+          </TouchableOpacity>
           {view === "following" ? (
             <TouchableOpacity
               style={styles.unfollowButton}
@@ -355,6 +359,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, alignItems: "center", paddingTop: 40, backgroundColor: "#fff" },
   avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 16 },
   name: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
+  clickableName: { fontSize: 20, fontWeight: "700", marginBottom: 8, color: "#007AFF", textDecorationLine: "underline" },
   info: { fontSize: 16, color: "#555" },
   buttonContainer: { marginVertical: 8, borderRadius: 8, overflow: "hidden" },
   bioInput: { height: 100 },
