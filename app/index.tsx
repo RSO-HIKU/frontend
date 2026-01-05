@@ -447,6 +447,13 @@ export default function Index() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={[styles.authButton, { marginLeft: 8 }]}
+              onPress={() => router.push("/scoreboards-challenges")}
+            >
+              <Text style={styles.authButtonText}>Scoreboards</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={[styles.authButton, { marginLeft: 8, marginRight:8 }]}
               onPress={() => router.push("/my-user-profile")}
             >
