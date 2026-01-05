@@ -92,10 +92,12 @@ const ICONS: Record<string, any> = {
 };
 
 export default function Index() {
+  const screenWidth = Dimensions.get("window").width;
+  const isMobile = screenWidth < 768;
   const [loading, setLoading] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<string | null>(null);
   const [weather, setWeather] = useState<{ temp?: string | null; wind_kmh?: string | null; wind_dir?: string; icon?: string; desc?: string; snow_var_desc?: string; snow_var_unit?: string } | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
   const [maxButtonWidth, setMaxButtonWidth] = useState(160);
   const [leftPanelHeight, setLeftPanelHeight] = useState(0);
   const [failedIcons, setFailedIcons] = useState<Record<string, boolean>>({});
@@ -421,63 +423,80 @@ export default function Index() {
       {/* Moved service buttons below into left column */}
 
       <View style={styles.content}>
-        <View style={styles.headerBar}>
+        <View style={[styles.headerBar, isMobile && styles.headerBarMobile]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>Welcome to Hiku</Text>
+            <Text style={[styles.title, isMobile && styles.titleMobile]}>Welcome to Hiku</Text>
           </View>
 
-          <View style={styles.headerCenter}>
-            {weather ? (
-              <View style={styles.inlineWeather}>
-                <Text style={styles.inlineWeatherPrimary}>Kredarica: {weather.temp ?? "--"}°C</Text>
-                <Text style={styles.inlineWeatherSecondary}>veter {weather.wind_dir ?? ""}, {weather.wind_kmh ?? "--"} km/h</Text>
-              </View>
-            ) : null}
-          </View>
+          {!isMobile && (
+            <View style={styles.headerCenter}>
+              {weather ? (
+                <View style={styles.inlineWeather}>
+                  <Text style={styles.inlineWeatherPrimary}>Kredarica: {weather.temp ?? "--"}°C</Text>
+                  <Text style={styles.inlineWeatherSecondary}>veter {weather.wind_dir ?? ""}, {weather.wind_kmh ?? "--"} km/h</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
 
-    
-
-          <View style={styles.authActions}>
-
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={() => router.push("/social-feed")}
-            >
-              <Text style={styles.authButtonText}>Social Feed</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.authButton, { marginLeft: 8 }]}
-              onPress={() => router.push("/scoreboards-challenges")}
-            >
-              <Text style={styles.authButtonText}>Scoreboards</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.authButton, { marginLeft: 8, marginRight:8 }]}
-              onPress={() => router.push("/my-user-profile")}
-            >
-              <Text style={styles.authButtonText}>My Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.authButton} onPress={() => login()}> 
-              <Text style={styles.authButtonText}>Log in</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.authButton} onPress={() => register()}>
-              <Text style={styles.authButtonText}>Sign up</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
-              <Text style={styles.authButtonText}>Log out</Text>
-            </TouchableOpacity>
+          <View style={[styles.authActions, isMobile && styles.authActionsMobile]}>
+            {isMobile ? (
+              <>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall]} onPress={() => router.push("/social-feed")}>
+                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Feed</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => router.push("/scoreboards-challenges")}>
+                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Score</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => router.push("/my-user-profile")}>
+                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => login()}>
+                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>In</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => logout()}>
+                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Out</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.authButton} onPress={() => router.push("/social-feed")}>
+                  <Text style={styles.authButtonText}>Social Feed</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => router.push("/scoreboards-challenges")}>
+                  <Text style={styles.authButtonText}>Scoreboards</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 8, marginRight: 8 }]} onPress={() => router.push("/my-user-profile")}>
+                  <Text style={styles.authButtonText}>My Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.authButton} onPress={() => login()}>
+                  <Text style={styles.authButtonText}>Log in</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.authButton} onPress={() => register()}>
+                  <Text style={styles.authButtonText}>Sign up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
+                  <Text style={styles.authButtonText}>Log out</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
-        {/* Two-column layout: left (buttons), right (map) */}
-        <View style={styles.mainRow}>
-          <View style={styles.leftColumn}>
-            <View
-              style={[styles.sidePanel, sidebarCollapsed ? styles.sidePanelCollapsed : { width: maxButtonWidth + 28 }]}
-              onLayout={(e) => setLeftPanelHeight(e.nativeEvent.layout.height)}
-            >
+        {isMobile && weather ? (
+          <View style={styles.mobileWeatherBar}>
+            <Text style={styles.mobileWeatherText}>Kredarica: {weather.temp ?? "--"}°C | {weather.wind_dir ?? ""} {weather.wind_kmh ?? "--"} km/h</Text>
+          </View>
+        ) : null}
+
+        {/* Two-column layout: left (buttons), right (map) - responsive */}
+        <View style={[styles.mainRow, isMobile && styles.mainRowMobile]}>
+          {!isMobile && (
+            <View style={styles.leftColumn}>
+              <View
+                style={[styles.sidePanel, sidebarCollapsed ? styles.sidePanelCollapsed : { width: maxButtonWidth + 28 }]}
+                onLayout={(e) => setLeftPanelHeight(e.nativeEvent.layout.height)}
+              >
               <View style={styles.sidePanelHeader}>
                 <TouchableOpacity style={styles.collapseToggle} onPress={() => setSidebarCollapsed(!sidebarCollapsed)}>
                   <Text style={styles.collapseToggleText}>{sidebarCollapsed ? "›" : "‹"}</Text>
@@ -526,8 +545,58 @@ export default function Index() {
               </View>
             </View>
           </View>
+          )}
 
-          <View style={styles.rightColumn}>
+          {isMobile && !sidebarCollapsed && (
+            <View style={styles.mobileSidebar}>
+              <View style={styles.sidePanelHeader}>
+                <TouchableOpacity style={styles.collapseToggle} onPress={() => setSidebarCollapsed(!sidebarCollapsed)}>
+                  <Text style={styles.collapseToggleText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.mobileMenuScroll}>
+                <View style={styles.topMenu}>
+                  {SERVICES.map((s) => {
+                    const isLoading = loading === s;
+                    return (
+                      <TouchableOpacity
+                        key={s}
+                        style={[styles.menuItemMobile, isLoading && styles.menuItemLoading]}
+                        onPress={() => {
+                          if (s === "badge-service") {
+                            router.push("/badge-service");
+                          } else if (s === "activity-service") {
+                            router.push("/activity-service");
+                          } else {
+                            triggerService(s);
+                          }
+                          setSidebarCollapsed(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {!failedIcons[s] && ICONS[s] ? (
+                          <Image
+                            source={ICONS[s]}
+                            style={styles.serviceIconImg}
+                            resizeMode="contain"
+                            onError={() => setFailedIcons((prev) => ({ ...prev, [s]: true }))}
+                          />
+                        ) : (
+                          <Text style={styles.serviceIconText}>🔧</Text>
+                        )}
+                        <Text style={styles.menuText}>{s}</Text>
+                        {isLoading && (
+                          <ActivityIndicator style={styles.indicator} size="small" color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={[styles.rightColumn, isMobile && styles.rightColumnMobile]}>
             <View style={styles.searchBarContainer}>
               <TextInput
                 placeholder="Search for trails and peaks..."
@@ -544,7 +613,7 @@ export default function Index() {
             </View>
             {/* Mapbox Map - Native platforms */}
             {Platform.OS !== 'web' && (
-              <View style={[styles.mapContainer, leftPanelHeight ? { height: leftPanelHeight } : null]}>
+              <View style={[styles.mapContainer, leftPanelHeight && !isMobile ? { height: leftPanelHeight } : isMobile ? { height: 300 } : null]}>
                 <MapView style={styles.map}>
                   <Camera zoomLevel={8} centerCoordinate={mapCenter} />
                   {trailFeatures.length > 0 && (
@@ -575,11 +644,11 @@ export default function Index() {
 
             {/* Mapbox Map - Web using mapbox-gl */}
             {Platform.OS === 'web' && (
-              <div style={{ width: '100%', height: leftPanelHeight || 400, borderRadius: 8, overflow: 'hidden' }} ref={webMapRef} />
+              <div style={{ width: '100%', height: isMobile ? 300 : (leftPanelHeight || 400), borderRadius: 8, overflow: 'hidden' }} ref={webMapRef} />
             )}
 
             {(trailFeatures.length > 0 || peakFeatures.length > 0) && (
-              <View style={styles.listsRow}>
+              <View style={[styles.listsRow, isMobile && styles.listsRowMobile]}>
                 {trailFeatures.length > 0 && (
                   <View style={styles.listColumn}>
                     <View style={styles.trailsListContainer}>
@@ -636,12 +705,24 @@ export default function Index() {
           </View>
         </View>
 
-        <View style={styles.responseBox}>
-          <Text style={styles.responseLabel}>Last response</Text>
-          <Text style={styles.responseText} numberOfLines={6}>
+        <View style={[styles.responseBox, isMobile && styles.responseBoxMobile]}>
+          <Text style={[styles.responseLabel, isMobile && styles.responseLabelMobile]}>Last response</Text>
+          <Text style={[styles.responseText, isMobile && styles.responseTextMobile]} numberOfLines={isMobile ? 3 : 6}>
             {lastResponse ?? "No requests yet."}
           </Text>
         </View>
+
+        {isMobile && !sidebarCollapsed && (
+          <TouchableOpacity style={styles.mobileMenuToggle} onPress={() => setSidebarCollapsed(true)}>
+            <Text style={styles.mobileMenuToggleText}>✕</Text>
+          </TouchableOpacity>
+        )}
+
+        {isMobile && sidebarCollapsed && (
+          <TouchableOpacity style={styles.mobileMenuButton} onPress={() => setSidebarCollapsed(false)}>
+            <Text style={styles.mobileMenuButtonText}>☰</Text>
+          </TouchableOpacity>
+        )}
       </View>
       {/* Background hero image with blur */}
       <View style={styles.heroWrapper} pointerEvents="none">
@@ -669,6 +750,10 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "flex-start",
     justifyContent: "flex-start",
+  },
+  mobileMenuScroll: {
+    flex: 1,
+    maxHeight: "80%",
   },
   sidePanel: {
     backgroundColor: "rgba(255,255,255,0.5)",
@@ -766,8 +851,21 @@ const styles = StyleSheet.create({
   weatherTemp: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
   weatherLine: { fontSize: 13, color: "#333" },
   mainRow: { flexDirection: "row", alignItems: "stretch", gap: 16, flex: 1, width: "100%" },
+  mainRowMobile: { flexDirection: "column", gap: 8 },
   leftColumn: { flexShrink: 0 },
   rightColumn: { flex: 1 },
+  rightColumnMobile: { flex: 1, minHeight: 500 },
+  mobileSidebar: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: "75%",
+    backgroundColor: "rgba(255,255,255,0.98)",
+    zIndex: 100,
+    borderRightWidth: 1,
+    borderRightColor: "#ddd",
+  },
   searchBarContainer: {
     marginBottom: 10,
     flexDirection: "row",
@@ -804,6 +902,10 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 12,
   },
+  listsRowMobile: {
+    flexDirection: "column",
+    gap: 8,
+  },
   listColumn: {
     flex: 1,
   },
@@ -815,20 +917,43 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
+  headerBarMobile: {
+    paddingVertical: 8,
+    justifyContent: "space-between",
+  },
   headerLeft: { flex: 1 },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
+  mobileWeatherBar: {
+    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  mobileWeatherText: {
+    fontSize: 12,
+    color: "#555",
+    textAlign: "center",
+  },
   inlineWeather: { alignItems: "center" },
   inlineWeatherPrimary: { fontSize: 16, fontWeight: "700", color: "#333" },
   inlineWeatherSecondary: { fontSize: 12, color: "#555" },
   title: { fontSize: 22, fontWeight: "700" },
+  titleMobile: { fontSize: 16, fontWeight: "700" },
   authActions: { flexDirection: "row", alignItems: "center" },
+  authActionsMobile: { gap: 2 },
   authButton: {
     backgroundColor: "#007AFF",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
   },
+  authButtonSmall: {
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
   authButtonText: { color: "#fff", fontWeight: "600" },
+  authButtonTextSmall: { fontSize: 11 },
   hint: { color: "#666", marginBottom: 18, fontSize: 16 },
   responseBox: {
     width: "100%",
@@ -836,8 +961,14 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 6,
   },
+  responseBoxMobile: {
+    padding: 8,
+    marginBottom: 60,
+  },
   responseLabel: { color: "#333", fontWeight: "600", marginBottom: 6, fontSize: 16 },
+  responseLabelMobile: { fontSize: 13 },
   responseText: { color: "#222", fontSize: 16 },
+  responseTextMobile: { fontSize: 12 },
   // Trails list styles
   trailsListContainer: {
     width: "100%",
@@ -871,5 +1002,49 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 16,
+  },
+  menuItemMobile: {
+    backgroundColor: "#007AFF",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    marginBottom: 8,
+    borderRadius: 6,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mobileMenuToggle: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#007AFF",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 99,
+  },
+  mobileMenuToggleText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  mobileMenuButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#007AFF",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 99,
+  },
+  mobileMenuButtonText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });
