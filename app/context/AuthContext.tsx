@@ -41,7 +41,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function init() {
       if (!kc) {
-        // If you run native later, you’ll replace this with a native auth solution.
         if (mounted) {
           setReady(true);
           setAuthenticated(false);
@@ -89,7 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function login() {
     if (!kc) return;
-    // Use Keycloak's built-in login which handles the redirect properly
     await kc.login({
       redirectUri: window.location.origin + "/",
     });
