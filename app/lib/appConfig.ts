@@ -1,7 +1,7 @@
 // AppConfig.ts
 
 export const AppConfig = {
-  environment: process.env.NODE_ENV || "development",
+  environment: process.env.EXPO_PUBLIC_ENV || "development",
   // services: {
   //   "user-service": "http://localhost:8083",
   //   "social-feed-service": "http://localhost:8091",
