@@ -467,15 +467,22 @@ export default function Index() {
                 <TouchableOpacity style={[styles.authButton, { marginLeft: 8, marginRight: 8 }]} onPress={() => router.push("/my-user-profile")}>
                   <Text style={styles.authButtonText}>My Profile</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.authButton} onPress={() => login()}>
-                  <Text style={styles.authButtonText}>Log in</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.authButton} onPress={() => register()}>
-                  <Text style={styles.authButtonText}>Sign up</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
-                  <Text style={styles.authButtonText}>Log out</Text>
-                </TouchableOpacity>
+                {!authenticated ? (
+                  <>
+                    <TouchableOpacity style={styles.authButton} onPress={() => login()}>
+                      <Text style={styles.authButtonText}>Log in</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.authButton} onPress={() => register()}>
+                      <Text style={styles.authButtonText}>Sign up</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
+                      <Text style={styles.authButtonText}>Log out</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </>
             )}
           </View>
