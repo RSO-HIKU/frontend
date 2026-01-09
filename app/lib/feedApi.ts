@@ -1,4 +1,4 @@
-import { getServiceUrl } from "./appConfig";
+import { getServiceUrl, getImageUploadFunctionUrl } from "./appConfig";
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 
@@ -13,7 +13,7 @@ export interface Post {
 }
 
 const API_URL = getServiceUrl("/api/feed");
-const IMAGE_FUNCTION_URL = "https://imageresizetest2-b0dbbshhgzdnfgbv.germanywestcentral-01.azurewebsites.net/api/ResizeAndUploadImage";
+const IMAGE_FUNCTION_URL = getImageUploadFunctionUrl();
 
 export const feedApi = {
   // Upload image to Azure Function
