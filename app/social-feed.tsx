@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: "100%",
+    maxHeight: 350,
     borderRadius: 6,
     marginVertical: 8,
   },
