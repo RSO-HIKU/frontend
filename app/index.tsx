@@ -18,6 +18,7 @@ import Constants from "expo-constants";
 import { createApi } from "./lib/api";
 import { assignDistinctColors } from "./utils/colors";
 import type { TrailFeature, TrailDto } from "./types/trails";
+import { fetchWeatherData } from "./lib/weatherapi";
 
 import { appConfig } from "./lib/appConfig";
 import { useAuth } from "./context/AuthContext";
@@ -115,8 +116,10 @@ export default function Index() {
     if (!authenticated) {
       router.replace("/login");
     } else if (needsProfile) {
+      // User needs to complete profile (happens after registration)
       router.replace("/finish-signup");
     }
+    // If authenticated and has profile, stay on index (home)
   }, [ready, authenticated, needsProfile]);
 
   const trailCollection = useMemo(
@@ -242,19 +245,14 @@ export default function Index() {
   useEffect(() => {
     fetchTrails();
     fetchPeaks();
-  }, [fetchTrails, fetchPeaks]);
+  }, []); // Empty dependency array - only run once on mount
   // Fetch weather once on mount and every minute
   React.useEffect(() => {
     let mounted = true;
     const fetchWeather = async () => {
       try {
-        const cfg = SERVICE_CONFIG["weather-service"] ?? {};
-        const base = cfg.baseUrl ?? BASE_URL;
-        const path = cfg.path ?? "weather/current"; // fallback, though cfg.path is set
-        const url = `${base}/${path}`;
-        const res = await fetch(url);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await fetchWeatherData();
+        console.log("[fetchWeather] Fetched data:", data);
         if (mounted) setWeather(data);
       } catch (e) {
         // ignore — optional logging
@@ -530,7 +528,11 @@ export default function Index() {
                           source={ICONS[s]}
                           style={styles.serviceIconImg}
                           resizeMode="contain"
-                          onError={() => setFailedIcons((prev) => ({ ...prev, [s]: true }))}
+                          onError={() => {
+                            if (!failedIcons[s]) {
+                              setFailedIcons((prev) => ({ ...prev, [s]: true }));
+                            }
+                          }}
                         />
                       ) : (
                         <Text style={styles.serviceIconText}>🔧</Text>
@@ -579,7 +581,11 @@ export default function Index() {
                             source={ICONS[s]}
                             style={styles.serviceIconImg}
                             resizeMode="contain"
-                            onError={() => setFailedIcons((prev) => ({ ...prev, [s]: true }))}
+                            onError={() => {
+                              if (!failedIcons[s]) {
+                                setFailedIcons((prev) => ({ ...prev, [s]: true }));
+                              }
+                            }}
                           />
                         ) : (
                           <Text style={styles.serviceIconText}>🔧</Text>
