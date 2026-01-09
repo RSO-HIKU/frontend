@@ -455,15 +455,7 @@ export default function Index() {
               </>
             ) : (
               <>
-                <TouchableOpacity style={styles.authButton} onPress={() => router.push("/social-feed")}>
-                  <Text style={styles.authButtonText}>Social Feed</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => router.push("/scoreboards-challenges")}>
-                  <Text style={styles.authButtonText}>Scoreboards</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, { marginLeft: 8, marginRight: 8 }]} onPress={() => router.push("/my-user-profile")}>
-                  <Text style={styles.authButtonText}>My Profile</Text>
-                </TouchableOpacity>
+
                 {!authenticated ? (
                   <>
                     <TouchableOpacity style={styles.authButton} onPress={() => login()}>
