@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Modal, TextInput, Alert, Image, ScrollView } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -204,38 +204,40 @@ export default function MyPosts() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create New Post</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Title"
-              value={newTitle}
-              onChangeText={setNewTitle}
-            />
-            <TextInput
-              style={[styles.input, { height: 80 }]}
-              placeholder="Content"
-              value={newContent}
-              onChangeText={setNewContent}
-              multiline
-            />
-            <TouchableOpacity 
-              style={styles.imagePicker}
-              onPress={pickImage}
-            >
-              <Text style={styles.imagePickerText}>
-                {selectedImage ? "✓ Image Selected" : "Pick an Image (Optional)"}
-              </Text>
-            </TouchableOpacity>
-            {selectedImage && (
-              <Image
-                source={{ uri: selectedImage }}
-                style={[
-                  styles.selectedImagePreview,
-                  { aspectRatio: imageAspectRatios[selectedImage] ?? 4 / 3 },
-                ]}
-                resizeMode="contain"
+            <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+              <Text style={styles.modalTitle}>Create New Post</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Title"
+                value={newTitle}
+                onChangeText={setNewTitle}
               />
-            )}
+              <TextInput
+                style={[styles.input, { height: 80 }]}
+                placeholder="Content"
+                value={newContent}
+                onChangeText={setNewContent}
+                multiline
+              />
+              <TouchableOpacity 
+                style={styles.imagePicker}
+                onPress={pickImage}
+              >
+                <Text style={styles.imagePickerText}>
+                  {selectedImage ? "✓ Image Selected" : "Pick an Image (Optional)"}
+                </Text>
+              </TouchableOpacity>
+              {selectedImage && (
+                <Image
+                  source={{ uri: selectedImage }}
+                  style={[
+                    styles.selectedImagePreview,
+                    { aspectRatio: imageAspectRatios[selectedImage] ?? 4 / 3 },
+                  ]}
+                  resizeMode="contain"
+                />
+              )}
+            </ScrollView>
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: "#ccc" }]}
@@ -292,9 +294,9 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: "100%",
+    maxHeight: 350,
     borderRadius: 6,
     marginVertical: 8,
-    // height removed to allow aspectRatio to control rendered height
   },
   title: { fontWeight: "600", marginBottom: 4, fontSize: 16 },
   text: { marginBottom: 8 },
@@ -319,10 +321,12 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: "90%",
+    maxHeight: "80%",
     backgroundColor: "#fff",
     borderRadius: 8,
     padding: 20,
     elevation: 5,
+    flexDirection: "column",
   },
   modalTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
   input: {
@@ -362,8 +366,8 @@ const styles = StyleSheet.create({
   },
   selectedImagePreview: {
     width: "100%",
+    maxHeight: 250,
     borderRadius: 8,
     marginBottom: 12,
-    // height removed so aspectRatio/contain shows whole image
   },
 });
