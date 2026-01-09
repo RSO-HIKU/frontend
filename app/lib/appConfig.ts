@@ -3,7 +3,7 @@
 export const AppConfig = {
   environment: process.env.NODE_ENV || "development",
   // services: {
-  //   "user-service": "http://localhost:8083",
+   //  "api/user": "http://localhost:8083",
   //   "social-feed-service": "http://localhost:8091",
   // } as const, // make keys readonly literals
   gatewayUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:30080",

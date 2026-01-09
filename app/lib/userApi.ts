@@ -31,16 +31,31 @@ export async function checkUserExists(userId: string): Promise<boolean> {
 }
 
 export async function createUserProfile(userData: CreateUserDto): Promise<UserProfileDto> {
-  const res = await fetch(`${API_URL}/user`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(userData),
-  });
+  try {
+    console.log("Creating user with data:", userData);
+    const res = await fetch(`${API_URL}/user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+    
+      },
+      body: JSON.stringify(userData),
+    });
 
-  if (!res.ok) throw new Error(`User creation failed: ${res.status}`);
-  return res.json();
+    console.log("Create user response status:", res.status);
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`User creation failed with status ${res.status}:`, errorText);
+      throw new Error(`User creation failed: ${res.status}`);
+    }
+
+    const user = await res.json();
+    console.log("User created successfully:", user);
+    return user;
+  } catch (error) {
+    console.error("Error creating user profile:", error);
+    throw error;
+  }
 }
 
 export async function fetchUserProfile(userId: string): Promise<UserProfileDto> {

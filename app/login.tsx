@@ -9,10 +9,22 @@ export default function Login() {
   useEffect(() => {
     if (!ready) return;
     
+    console.log("[Login] Navigation check:", { authenticated, needsProfile });
+    
     if (authenticated) {
+      // Check localStorage for registration flag (in case state was lost on remount)
+      const registrationFlag = window.localStorage.getItem('keycloak_just_registered') === 'true';
+      console.log("[Login] Registration flag from localStorage:", registrationFlag);
+      
       if (needsProfile) {
+        // User just registered (new account)
+        console.log("[Login] User needs profile - going to finish-signup");
+        window.localStorage.removeItem('keycloak_just_registered');
         router.replace("/finish-signup");
       } else {
+        // User has complete profile - go to home
+        console.log("[Login] User has profile - going to home");
+        window.localStorage.removeItem('keycloak_just_registered');
         router.replace("/");
       }
     }

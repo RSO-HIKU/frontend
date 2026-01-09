@@ -5,7 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 
-type TabType = "challenges" | "badgeScoreboard" | "challengeScoreboard";
+type TabType = "challenges" | "challengeScoreboard";
 
 export default function ScoreboardsAndChallenges() {
   const router = useRouter();
@@ -19,7 +19,6 @@ export default function ScoreboardsAndChallenges() {
 
   const [activeTab, setActiveTab] = useState<TabType>("challenges");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [badgeScoreboard, setBadgeScoreboard] = useState<ScoreboardEntry[]>([]);
   const [challengeScoreboard, setChallengeScoreboard] = useState<ScoreboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,23 +48,6 @@ export default function ScoreboardsAndChallenges() {
         const challengesData = await scoreboardApi.getChallenges(currentUserId, getToken);
         console.log("[loadData] received challenges:", challengesData);
         setChallenges(challengesData);
-      } else if (activeTab === "badgeScoreboard") {
-        console.log("[loadData] calling getChallengeScoreboard to build user list");
-        // Get challenge scoreboard first to get user IDs
-        const challengeData = await scoreboardApi.getChallengeScoreboard(undefined, undefined, 20, getToken);
-        console.log("[loadData] challengeScoreboard:", challengeData);
-        const userIds = challengeData.map(entry => entry.userId);
-        
-        // Add current user if not in list
-        if (!userIds.includes(currentUserId)) {
-          console.log("[loadData] adding currentUserId to userIds");
-          userIds.push(currentUserId);
-        }
-
-        console.log("[loadData] calling scoreboardApi.getBadgeScoreboard with userIds:", userIds);
-        const badgeData = await scoreboardApi.getBadgeScoreboard(userIds, undefined, undefined, getToken);
-        console.log("[loadData] received badgeScoreboard:", badgeData);
-        setBadgeScoreboard(badgeData);
       } else if (activeTab === "challengeScoreboard") {
         console.log("[loadData] calling getChallengeScoreboard");
         const scoreboardData = await scoreboardApi.getChallengeScoreboard(undefined, undefined, 20, getToken);
@@ -188,14 +170,6 @@ export default function ScoreboardsAndChallenges() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === "badgeScoreboard" && styles.activeTab]}
-          onPress={() => setActiveTab("badgeScoreboard")}
-        >
-          <Text style={[styles.tabText, activeTab === "badgeScoreboard" && styles.activeTabText]}>
-            Badge Board
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={[styles.tab, activeTab === "challengeScoreboard" && styles.activeTab]}
           onPress={() => setActiveTab("challengeScoreboard")}
         >
@@ -225,25 +199,6 @@ export default function ScoreboardsAndChallenges() {
                 data={challenges}
                 renderItem={renderChallenge}
                 keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
-              />
-            )}
-          </View>
-        )}
-
-        {activeTab === "badgeScoreboard" && (
-          <View>
-            <Text style={styles.sectionTitle}>Badge Scoreboard</Text>
-            <Text style={styles.sectionSubtitle}>
-              Top users by badges earned this month
-            </Text>
-            {badgeScoreboard.length === 0 ? (
-              <Text style={styles.emptyText}>No data available</Text>
-            ) : (
-              <FlatList
-                data={badgeScoreboard}
-                renderItem={renderScoreboardEntry}
-                keyExtractor={(item, index) => `badge-${item.userId}-${index}`}
                 scrollEnabled={false}
               />
             )}
