@@ -18,6 +18,10 @@ export const getServiceUrl = (path: string): string => {
   return `${AppConfig.gatewayUrl}${path}`;
 };
 
+export const getImageUploadFunctionUrl = (): string => {
+  return `${appConfig.imageUploadFunctionUrl}`;
+}
+
 export const appConfig = {
   env: process.env.EXPO_PUBLIC_ENV ?? "dev",
   keycloak: {
@@ -26,4 +30,5 @@ export const appConfig = {
     clientId: process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID ?? "hiku-web",
   },
   apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL!, // e.g. http://127.0.0.1:63053
+  imageUploadFunctionUrl: process.env.EXPO_PUBLIC_IMAGE_UPLOAD_FUNCTION_URL! || "https://imageresizetest2-b0dbbshhgzdnfgbv.germanywestcentral-01.azurewebsites.net/api/ResizeAndUploadImage",
 };
