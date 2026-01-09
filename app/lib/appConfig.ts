@@ -3,7 +3,7 @@
 export const AppConfig = {
   environment: process.env.EXPO_PUBLIC_ENV || "development",
   // services: {
-  //   "user-service": "http://localhost:8083",
+   //  "api/user": "http://localhost:8083",
   //   "social-feed-service": "http://localhost:8091",
   // } as const, // make keys readonly literals
   gatewayUrl: process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:30080",
@@ -18,6 +18,10 @@ export const getServiceUrl = (path: string): string => {
   return `${AppConfig.gatewayUrl}${path}`;
 };
 
+export const getImageUploadFunctionUrl = (): string => {
+  return `${appConfig.imageUploadFunctionUrl}`;
+}
+
 export const appConfig = {
   env: process.env.EXPO_PUBLIC_ENV ?? "dev",
   keycloak: {
@@ -26,4 +30,5 @@ export const appConfig = {
     clientId: process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID ?? "hiku-web",
   },
   apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL!, // e.g. http://127.0.0.1:63053
+  imageUploadFunctionUrl: process.env.EXPO_PUBLIC_IMAGE_UPLOAD_FUNCTION_URL! || "https://imageresizetest2-b0dbbshhgzdnfgbv.germanywestcentral-01.azurewebsites.net/api/ResizeAndUploadImage",
 };

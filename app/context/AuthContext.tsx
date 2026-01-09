@@ -7,6 +7,7 @@ type AuthCtx = {
   ready: boolean;
   authenticated: boolean;
   needsProfile: boolean;
+  justRegistered: boolean;
   checkProfile: () => Promise<void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
@@ -14,7 +15,7 @@ type AuthCtx = {
   getToken: () => Promise<string | null>;
   getUserId: () => string | null;
   getUserInfo: () => { email?: string; username?: string; fullName?: string } | null;
-  getUsername: () => string | null; // Add this
+  getUsername: () => string | null;
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [justRegistered, setJustRegistered] = useState(false);
 
   const kc = useMemo(() => (Platform.OS === "web" ? getKeycloak() : null), []);
 
@@ -34,6 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const exists = await checkUserExists(userId);
     setNeedsProfile(!exists);
+    if (exists) {
+      setJustRegistered(false);
+    }
   }
 
   useEffect(() => {
@@ -41,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function init() {
       if (!kc) {
-        // If you run native later, you’ll replace this with a native auth solution.
         if (mounted) {
           setReady(true);
           setAuthenticated(false);
@@ -69,7 +73,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userId = (kc as any).tokenParsed?.sub;
           if (userId) {
             const exists = await checkUserExists(userId);
-            setNeedsProfile(!exists);
+            const needsProfileValue = !exists;
+            setNeedsProfile(needsProfileValue);
+            
+            console.log("[Auth] User exists check:", { userId, exists, needsProfileValue });
+            
+            // Check if this is a registration callback
+            const hasRegistrationFlag = window.localStorage.getItem('keycloak_just_registered') === 'true';
+            console.log("[Auth] Registration flag found:", hasRegistrationFlag);
+            
+            // If user doesn't exist AND we have the registration flag, mark as just registered
+            if (hasRegistrationFlag && needsProfileValue) {
+              console.log("[Auth] Detected new registration");
+              setJustRegistered(true);
+            }
           }
         }
       }
@@ -89,7 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function login() {
     if (!kc) return;
-    // Use Keycloak's built-in login which handles the redirect properly
     await kc.login({
       redirectUri: window.location.origin + "/",
     });
@@ -102,6 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function register() {
     if (!kc) return;
+    window.localStorage.setItem('keycloak_just_registered', 'true');
+    console.log("[Auth] Starting registration flow");
     await kc.login({ action: "register", redirectUri: window.location.origin + "/" });
   }
 
@@ -140,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ ready, authenticated, needsProfile, checkProfile, login, logout, register, getToken, getUserId, getUserInfo, getUsername }}>
+    <Ctx.Provider value={{ ready, authenticated, needsProfile, justRegistered, checkProfile, login, logout, register, getToken, getUserId, getUserInfo, getUsername }}>
       {children}
     </Ctx.Provider>
   );

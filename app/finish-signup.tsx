@@ -39,8 +39,9 @@ export default function FinishSignup() {
         bio: formData.bio.trim() || undefined,
         age: formData.age ? parseInt(formData.age) : undefined,
       };
-
+      console.log("Submitting user data:", userData);
       await createUserProfile(userData);
+      console.log("User profile created successfully");
       await checkProfile(); // Refresh the profile status
       router.replace("/");
     } catch (error) {

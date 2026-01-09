@@ -223,7 +223,7 @@ export default function MyPosts() {
               onPress={pickImage}
             >
               <Text style={styles.imagePickerText}>
-                {selectedImage ? "✓ Image Selected" : "Pick an Image"}
+                {selectedImage ? "✓ Image Selected" : "Pick an Image (Optional)"}
               </Text>
             </TouchableOpacity>
             {selectedImage && (
