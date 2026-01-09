@@ -71,15 +71,16 @@ const SERVICE_CONFIG: Record<
   },
 };
 
-const SERVICES = [
+const PAGES = [
+    "My Profile",
+  "Social Feed",
+  "Scoreboards",
   "activity-service",
   "badge-service",
   "peaks-hikes-service",
-  "scoreboards-challenges-service",
-  "social-feed-service",
-  "trail-import-service",
-  "user-service",
-  "weather-service",
+//  "trail-import-service",
+ // "weather-service",
+
 ];
 
 // Static icon mapping for services (PNG recommended)
@@ -88,7 +89,9 @@ const ICONS: Record<string, any> = {
   "activity-service": require("../assets/icons/activity-service.png"),
   "badge-service": require("../assets/icons/badge-service.png"),
   "peaks-hikes-service": require("../assets/icons/peaks-hikes-service.png"),
-  "scoreboards-challenges-service": require("../assets/icons/scoreboards-challenges-service.png"),
+  "Scoreboards": require("../assets/icons/scoreboards-challenges-service.png"),
+  "Social Feed": require("../assets/icons/social-feed.png"),
+  "My Profile": require("../assets/icons/user-profile.png"),
   // Add more icons as you create them in assets/icons/
 };
 
@@ -440,40 +443,25 @@ export default function Index() {
           <View style={[styles.authActions, isMobile && styles.authActionsMobile]}>
             {isMobile ? (
               <>
-                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall]} onPress={() => router.push("/social-feed")}>
-                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Feed</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => router.push("/scoreboards-challenges")}>
-                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Score</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => router.push("/my-user-profile")}>
-                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Profile</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => login()}>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall]} onPress={() => login()}>
                   <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>In</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => logout()}>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 4 }]} onPress={() => register()}>
+                  <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Sign up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, styles.authButtonSmall, { marginLeft: 12 }]} onPress={() => logout()}>
                   <Text style={[styles.authButtonText, styles.authButtonTextSmall]}>Out</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <TouchableOpacity style={styles.authButton} onPress={() => router.push("/social-feed")}>
-                  <Text style={styles.authButtonText}>Social Feed</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => router.push("/scoreboards-challenges")}>
-                  <Text style={styles.authButtonText}>Scoreboards</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, { marginLeft: 8, marginRight: 8 }]} onPress={() => router.push("/my-user-profile")}>
-                  <Text style={styles.authButtonText}>My Profile</Text>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.authButton} onPress={() => login()}>
                   <Text style={styles.authButtonText}>Log in</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.authButton} onPress={() => register()}>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => register()}>
                   <Text style={styles.authButtonText}>Sign up</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => logout()}>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 24 }]} onPress={() => logout()}>
                   <Text style={styles.authButtonText}>Log out</Text>
                 </TouchableOpacity>
               </>
@@ -492,7 +480,7 @@ export default function Index() {
           {!isMobile && (
             <View style={styles.leftColumn}>
               <View
-                style={[styles.sidePanel, sidebarCollapsed ? styles.sidePanelCollapsed : { width: maxButtonWidth + 28 }]}
+                style={[styles.sidePanel, sidebarCollapsed ? styles.sidePanelCollapsed : styles.sidePanelExpanded]}
                 onLayout={(e) => setLeftPanelHeight(e.nativeEvent.layout.height)}
               >
               <View style={styles.sidePanelHeader}>
@@ -501,26 +489,30 @@ export default function Index() {
                 </TouchableOpacity>
               </View>
               <View style={styles.topMenu}>
-                {SERVICES.map((s) => {
+                {PAGES.map((s) => {
                   const isLoading = loading === s;
                   return (
                     <TouchableOpacity
                       key={s}
                       style={[sidebarCollapsed ? styles.menuItemCollapsed : styles.menuItem, isLoading && styles.menuItemLoading]}
                       onPress={() => {
-                        if (s === "badge-service") {
+                        if (s === "My Profile") {
+                          router.push("/my-user-profile");
+                        } else if (s === "Social Feed") {
+                          router.push("/social-feed");
+                        } else if (s === "Scoreboards") {
+                          router.push("/scoreboards-challenges");
+                        } else if (s === "badge-service") {
                           router.push("/badge-service");
                         } else if (s === "activity-service") {
                           router.push("/activity-service");
+                        } else if (s === "peaks-hikes-service") {
+                      //    router.push("/user");
                         } else {
                           triggerService(s);
                         }
                       }}
                       activeOpacity={0.7}
-                      onLayout={!sidebarCollapsed ? (e) => {
-                        const w = e.nativeEvent.layout.width;
-                        setMaxButtonWidth((prev) => (w > prev ? w : prev));
-                      } : undefined}
                     >
                       {/* Icon from assets/icons/<service>.png */}
                       {!failedIcons[s] && ICONS[s] ? (
@@ -558,14 +550,20 @@ export default function Index() {
               </View>
               <ScrollView style={styles.mobileMenuScroll}>
                 <View style={styles.topMenu}>
-                  {SERVICES.map((s) => {
+                  {PAGES.map((s) => {
                     const isLoading = loading === s;
                     return (
                       <TouchableOpacity
                         key={s}
                         style={[styles.menuItemMobile, isLoading && styles.menuItemLoading]}
                         onPress={() => {
-                          if (s === "badge-service") {
+                          if (s === "My Profile") {
+                            router.push("/my-user-profile");
+                          } else if (s === "Social Feed") {
+                            router.push("/social-feed");
+                          } else if (s === "Scoreboards") {
+                            router.push("/scoreboards-challenges");
+                          } else if (s === "badge-service") {
                             router.push("/badge-service");
                           } else if (s === "activity-service") {
                             router.push("/activity-service");
@@ -773,6 +771,9 @@ const styles = StyleSheet.create({
   sidePanelCollapsed: {
     width: 56,
   },
+  sidePanelExpanded: {
+    width: 200,
+  },
   sidePanelHeader: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -794,6 +795,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
   },
   menuItemCollapsed: {
     backgroundColor: "#007AFF",
@@ -1018,6 +1021,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "stretch",
   },
   mobileMenuToggle: {
     position: "absolute",
