@@ -15,7 +15,7 @@ import {
   ScrollView,
 } from "react-native";
 import Constants from "expo-constants";
-import { createApi } from "./lib/api";
+import { fetchTrails, fetchPeaks } from "./lib/api";
 import { assignDistinctColors } from "./utils/colors";
 import type { TrailFeature, TrailDto } from "./types/trails";
 import { fetchWeatherData } from "./lib/weatherapi";
@@ -112,7 +112,6 @@ export default function Index() {
   const [peakLoading, setPeakLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([14.5058, 46.3787]);
   const { ready, authenticated, needsProfile, login, logout, register, getToken } = useAuth();
-  const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
 
   useEffect(() => {
     if (!ready) return;
@@ -163,13 +162,11 @@ export default function Index() {
     }
   }, []);
 
-  const fetchTrails = useCallback(async () => {
+  const fetchTrailsData = useCallback(async () => {
     setTrailLoading(true);
     try {
-      const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
-      const base = cfg.baseUrl ?? BASE_URL;
-      console.log("Fetching trails from", base, "query:", searchQuery);
-      const data: TrailDto[] = await api.fetchTrails(searchQuery);
+      console.log("Fetching trails with query:", searchQuery);
+      const data: TrailDto[] = await fetchTrails(searchQuery);
       console.log("Raw API response:", data);
 
       let features: TrailFeature[] = Array.isArray(data)
@@ -204,15 +201,13 @@ export default function Index() {
     } finally {
       setTrailLoading(false);
     }
-  }, [BASE_URL, searchQuery, api]);
+  }, [searchQuery]);
 
-  const fetchPeaks = useCallback(async () => {
+  const fetchPeaksData = useCallback(async () => {
     setPeakLoading(true);
     try {
-      const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
-      const base = cfg.baseUrl ?? BASE_URL;
-      console.log("Fetching peaks from", base, "query:", searchQuery);
-      const data = await api.fetchPeaks(searchQuery);
+      console.log("Fetching peaks with query:", searchQuery);
+      const data = await fetchPeaks(searchQuery);
       console.log("Raw peaks API response:", data);
 
       const features = Array.isArray(data)
@@ -242,13 +237,14 @@ export default function Index() {
     } finally {
       setPeakLoading(false);
     }
-  }, [BASE_URL, searchQuery]);
+  }, [searchQuery]);
 
   // Auto-load trails on mount so the map has data without a manual search
   useEffect(() => {
-    fetchTrails();
-    fetchPeaks();
+    fetchTrailsData();
+    fetchPeaksData();
   }, []); // Empty dependency array - only run once on mount
+
   // Fetch weather once on mount and every minute
   React.useEffect(() => {
     let mounted = true;

@@ -1,5 +1,6 @@
 import type { TrailDto } from "../types/trails";
 import type { PeakDto } from "../types/peaks";
+import { getServiceUrl } from "./appConfig";
 
 export type LineStringGeometryDto = {
   type: "LineString";
@@ -13,42 +14,26 @@ export type PointGeometryDto = {
 
 export type GeometryDto = LineStringGeometryDto | PointGeometryDto;
 
-type GetTokenFn = () => Promise<string | null> | string | null;
+const API_URL = getServiceUrl("/api/peaks-hikes");
 
-function withQuery(url: string, searchQuery?: string) {
-  if (searchQuery && searchQuery.trim() !== "") {
-    return `${url}?query=${encodeURIComponent(searchQuery)}`;
-  }
-  return url;
+export async function fetchTrails(searchQuery?: string): Promise<TrailDto[]> {
+  const url = searchQuery && searchQuery.trim() !== "" 
+    ? `${API_URL}/gettrails?query=${encodeURIComponent(searchQuery)}`
+    : `${API_URL}/gettrails`;
+  
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) throw new Error(`Trails fetch failed: ${res.status}`);
+  return res.json();
 }
 
-async function authFetch(url: string, getToken?: GetTokenFn) {
-  const headers: Record<string, string> = {};
-  if (getToken) {
-    const token = await getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, { method: "GET", headers });
-  return res;
-}
-
-export function createApi(baseUrl: string, getToken?: GetTokenFn) {
-  return {
-    async fetchTrails(searchQuery?: string): Promise<TrailDto[]> {
-      const url = withQuery(`${baseUrl}/peaks-hikes/gettrails`, searchQuery);
-      const res = await authFetch(url, getToken);
-      if (!res.ok) throw new Error(`Trails fetch failed: ${res.status}`);
-      return res.json();
-    },
-
-    async fetchPeaks(searchQuery?: string): Promise<PeakDto[]> {
-      const url = withQuery(`${baseUrl}/peaks-hikes/getpeaks`, searchQuery);
-      const res = await authFetch(url, getToken);
-      if (!res.ok) throw new Error(`Peaks fetch failed: ${res.status}`);
-      return res.json();
-    },
-  };
+export async function fetchPeaks(searchQuery?: string): Promise<PeakDto[]> {
+  const url = searchQuery && searchQuery.trim() !== "" 
+    ? `${API_URL}/getpeaks?query=${encodeURIComponent(searchQuery)}`
+    : `${API_URL}/getpeaks`;
+  
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) throw new Error(`Peaks fetch failed: ${res.status}`);
+  return res.json();
 }
 
 // Re-export PeakDto for consumers that import from lib/api
