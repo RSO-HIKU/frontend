@@ -24,7 +24,6 @@ export default function MyUserProfile() {
   const [bio, setBio] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [age, setAge] = useState<number | undefined>(undefined);
 
   const [view, setView] = useState<"profile" | "followers" | "following">("profile");
   const [followers, setFollowers] = useState<UserProfileDto[]>([]);
@@ -53,7 +52,6 @@ export default function MyUserProfile() {
         setBio(data.bio || "");
         setUsername(data.username);
         setEmail(data.email || "");
-        setAge(data.age);
         const followingData = await fetchFollowing(userId);
       setFollowing(followingData);
       } catch (err: any) {
@@ -72,7 +70,7 @@ export default function MyUserProfile() {
         alert("User not authenticated");
         return;
       }
-      const updated = await updateUserProfile(userId, { username, email, age, bio });
+      const updated = await updateUserProfile(userId, { username, email, bio });
       setUser(updated);
       setEditing(false);
       alert("Profile updated!");
@@ -173,13 +171,6 @@ const handleFollowUser = async (targetUserId: string) => {
             <TextInput style={[styles.input, styles.disabledInput]} value={username} editable={false} placeholder="Username" />
             <TextInput style={[styles.input, styles.disabledInput]} value={email} editable={false} placeholder="Email" />
             <TextInput
-              style={styles.input}
-              value={age !== undefined ? age.toString() : ""}
-              onChangeText={(text) => setAge(Number(text))}
-              placeholder="Age"
-              keyboardType="numeric"
-            />
-            <TextInput
               style={[styles.input, styles.bioInput]}
               value={bio}
               onChangeText={setBio}
@@ -203,7 +194,6 @@ const handleFollowUser = async (targetUserId: string) => {
           <>
             <Text style={styles.name}>{user.username}</Text>
             {user.email && <Text style={styles.info}>{user.email}</Text>}
-            {user.age !== undefined && <Text style={styles.info}>Age: {user.age}</Text>}
             {user.bio && <Text style={styles.info}>{user.bio}</Text>}
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>

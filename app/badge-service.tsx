@@ -16,36 +16,22 @@ import {
   Modal,
 } from "react-native";
 import Constants from "expo-constants";
-import { createApi } from "./lib/api";
-import { appConfig } from "./lib/appConfig";
+import { fetchPeaks } from "./lib/api";
+import { appConfig, getServiceUrl } from "./lib/appConfig";
 import { useAuth } from "./context/AuthContext";
 import type { PeakDto } from "./lib/api";
 import type { LogbookEntry } from "./types/peaks";
 
-// Per-service overrides: path, HTTP method and (optional) baseUrl.
-const SERVICE_CONFIG: Record<
-  string,
-  { path?: string; method?: "GET" | "POST" | string; baseUrl?: string }
-> = {
-  "peaks-hikes-service": {
-    baseUrl: "http://localhost:8082",
-    path: "peaks-hikes/hello",
-    method: "GET",
-  },
-};
+// Gateway URL for badge service
+const BADGE_API_URL = getServiceUrl("/api/badges");
 
-const SERVICES = [
+const PAGES = [
+  "My Profile",
+  "Social Feed",
+  "Scoreboards",
   "activity-service",
-  "authentication-service",
   "badge-service",
-  "gateway-service",
-  "notification-service",
   "peaks-hikes-service",
-  "scoreboards-challenges-service",
-  "social-feed-service",
-  "trail-import-service",
-  "user-service",
-  "weather-service",
 ];
 
 const ICONS: Record<string, any> = {
@@ -57,13 +43,6 @@ const ICONS: Record<string, any> = {
 
 const MAX_VISIBLE_SEARCH_RESULTS = 4;
 const MAX_VISIBLE_LOGBOOK_RESULTS = 4;
-
-const _envBadge = (Constants?.manifest?.extra && (Constants.manifest.extra as any).BADGE_URL) || process.env.BADGE_URL;
-const BADGE_BASE = _envBadge ?? (Platform.OS === "android" ? "http://10.0.2.2:8087" : "http://localhost:8087");
-
-const _envBackend = (Constants?.manifest?.extra && (Constants.manifest.extra as any).BACKEND_URL) || process.env.BACKEND_URL;
-const BASE_URL =
-  _envBackend ?? (Platform.OS === "web" ? "http://localhost:8080" : Platform.OS === "android" ? "http://10.0.2.2:8080" : "http://localhost:8080");
 
 export default function BadgeServicePage() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -87,34 +66,38 @@ export default function BadgeServicePage() {
   const [notesInput, setNotesInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const { ready, authenticated, login, logout, getToken } = useAuth();
-  const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
+  const { ready, authenticated, login, logout, register, getToken, getUserId } = useAuth();
+  const userId = getUserId();
   
   useEffect(() => {
       if (!ready) return;
       if (!authenticated) router.replace("/login");
     }, [ready, authenticated]);
 
-  const userId = 1; // hardcoded for now
+  useEffect(() => {
+    if (userId) {
+      fetchLogbook();
+    }
+  }, [userId]);
 
-  const triggerService = useCallback(async (serviceName: string) => {
-    setLoading(serviceName);
+  const navigateToPage = useCallback((pageName: string) => {
+    setLoading(pageName);
     try {
-      const cfg = SERVICE_CONFIG[serviceName] ?? {};
-      const base = cfg.baseUrl ?? BASE_URL;
-      const path = cfg.path ?? `${serviceName}/hello`;
-      const method = cfg.method ?? "POST";
-      const url = `${base}/${path}`;
-      
-      const res = await fetch(url, { method });
-      const text = await res.text();
-      if (!res.ok) {
-        Alert.alert("Error", `${serviceName} failed`);
-      } else {
-        Alert.alert("Success", `Triggered ${serviceName}`);
+      if (pageName === "My Profile") {
+        router.push("/my-user-profile");
+      } else if (pageName === "Social Feed") {
+        router.push("/social-feed");
+      } else if (pageName === "Scoreboards") {
+        router.push("/scoreboards-challenges");
+      } else if (pageName === "activity-service") {
+        router.push("/activity-service");
+      } else if (pageName === "badge-service") {
+        router.push("/badge-service");
+      } else if (pageName === "peaks-hikes-service") {
+        router.push("/");
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Request failed");
+      Alert.alert("Error", err?.message || "Navigation failed");
     } finally {
       setLoading(null);
     }
@@ -123,9 +106,7 @@ export default function BadgeServicePage() {
   const searchPeaks = useCallback(async () => {
     setPeakLoading(true);
     try {
-      const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
-      const base = cfg.baseUrl ?? BASE_URL;
-      const data: PeakDto[] = await api.fetchPeaks(peakSearchQuery);
+      const data: PeakDto[] = await fetchPeaks(peakSearchQuery);
       setPeakSearchResults(data);
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Failed to fetch peaks");
@@ -136,8 +117,13 @@ export default function BadgeServicePage() {
   }, [peakSearchQuery]);
 
   const addToLogbook = async (peakId: number, peakName: string) => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+    
     try {
-      const res = await fetch(`${BADGE_BASE}/badges/logbook`, {
+      const res = await fetch(`${BADGE_API_URL}/logbook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -160,9 +146,11 @@ export default function BadgeServicePage() {
   };
 
   const fetchLogbook = async () => {
+    if (!userId) return;
+    
     setLogbookLoading(true);
     try {
-      const res = await fetch(`${BADGE_BASE}/badges/logbook?userId=${userId}`);
+      const res = await fetch(`${BADGE_API_URL}/logbook?userId=${encodeURIComponent(userId)}`);
       if (!res.ok) throw new Error("Failed to fetch logbook");
       const data = await res.json();
       setLogbookEntries(data.map((entry: any) => ({
@@ -194,24 +182,20 @@ export default function BadgeServicePage() {
             <Text style={styles.title}>Badge Service</Text>
           </View>
           <View style={styles.authActions}>
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={() => router.push("/social-feed")}
-            >
-              <Text style={styles.authButtonText}>Social Feed</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.authButton, { marginLeft: 8, marginRight: 8 }]}
-              onPress={() => router.push("/my-user-profile")}
-            >
-              <Text style={styles.authButtonText}>My Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert("Sign up", "Not implemented yet")}>
-              <Text style={styles.authButtonText}>Sign up</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => Alert.alert("Log in", "Not implemented yet")}>
-              <Text style={styles.authButtonText}>Log in</Text>
-            </TouchableOpacity>
+            {!authenticated ? (
+              <>
+                <TouchableOpacity style={styles.authButton} onPress={register}>
+                  <Text style={styles.authButtonText}>Sign up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={login}>
+                  <Text style={styles.authButtonText}>Log in</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={styles.authButton} onPress={logout}>
+                <Text style={styles.authButtonText}>Log out</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -229,13 +213,13 @@ export default function BadgeServicePage() {
                 </TouchableOpacity>
               </View>
               <View style={styles.topMenu}>
-                {SERVICES.map((s) => {
+                {PAGES.map((s) => {
                   const isLoading = loading === s;
                   return (
                     <TouchableOpacity
                       key={s}
                       style={[sidebarCollapsed ? styles.menuItemCollapsed : styles.menuItem, isLoading && styles.menuItemLoading]}
-                      onPress={() => triggerService(s)}
+                      onPress={() => navigateToPage(s)}
                       activeOpacity={0.7}
                       onLayout={!sidebarCollapsed ? (e) => {
                         const w = e.nativeEvent.layout.width;
