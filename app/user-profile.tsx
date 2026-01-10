@@ -90,7 +90,6 @@ export default function UserProfile() {
       />
       <Text style={styles.name}>{user.username}</Text>
       {isOwnProfile && user.email && <Text style={styles.info}>{user.email}</Text>}
-      {isOwnProfile && user.age !== undefined && <Text style={styles.info}>Age: {user.age}</Text>}
       {user.bio && <Text style={styles.bio}>{user.bio}</Text>}
       
       {!isOwnProfile && currentUserId && (

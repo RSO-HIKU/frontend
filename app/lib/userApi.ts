@@ -4,7 +4,6 @@ export type UserProfileDto = {
   id: string;
   username: string;
   email?: string;
-  age?: number;
   fullName?: string;
   bio?: string;
 };
@@ -15,7 +14,6 @@ export type CreateUserDto = {
   email: string;
   fullName?: string;
   bio?: string;
-  age?: number;
 };
 
 const API_URL = getServiceUrl("/api/user");
