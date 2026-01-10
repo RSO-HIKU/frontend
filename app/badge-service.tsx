@@ -16,11 +16,14 @@ import {
   Modal,
 } from "react-native";
 import Constants from "expo-constants";
-import { createApi } from "./lib/api";
-import { appConfig } from "./lib/appConfig";
+import { fetchPeaks } from "./lib/api";
+import { appConfig, getServiceUrl } from "./lib/appConfig";
 import { useAuth } from "./context/AuthContext";
 import type { PeakDto } from "./lib/api";
 import type { LogbookEntry } from "./types/peaks";
+
+// Gateway URL for badge service
+const BADGE_API_URL = getServiceUrl("/api/badges");
 
 // Per-service overrides: path, HTTP method and (optional) baseUrl.
 const SERVICE_CONFIG: Record<
@@ -58,13 +61,6 @@ const ICONS: Record<string, any> = {
 const MAX_VISIBLE_SEARCH_RESULTS = 4;
 const MAX_VISIBLE_LOGBOOK_RESULTS = 4;
 
-const _envBadge = (Constants?.manifest?.extra && (Constants.manifest.extra as any).BADGE_URL) || process.env.BADGE_URL;
-const BADGE_BASE = _envBadge ?? (Platform.OS === "android" ? "http://10.0.2.2:8087" : "http://localhost:8087");
-
-const _envBackend = (Constants?.manifest?.extra && (Constants.manifest.extra as any).BACKEND_URL) || process.env.BACKEND_URL;
-const BASE_URL =
-  _envBackend ?? (Platform.OS === "web" ? "http://localhost:8080" : Platform.OS === "android" ? "http://10.0.2.2:8080" : "http://localhost:8080");
-
 export default function BadgeServicePage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -88,7 +84,6 @@ export default function BadgeServicePage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const { ready, authenticated, login, logout, getToken } = useAuth();
-  const api = useMemo(() => createApi(appConfig.apiBaseUrl, getToken), [getToken]);
   
   useEffect(() => {
       if (!ready) return;
@@ -123,9 +118,7 @@ export default function BadgeServicePage() {
   const searchPeaks = useCallback(async () => {
     setPeakLoading(true);
     try {
-      const cfg = SERVICE_CONFIG["peaks-hikes-service"] ?? {};
-      const base = cfg.baseUrl ?? BASE_URL;
-      const data: PeakDto[] = await api.fetchPeaks(peakSearchQuery);
+      const data: PeakDto[] = await fetchPeaks(peakSearchQuery);
       setPeakSearchResults(data);
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Failed to fetch peaks");
@@ -137,7 +130,7 @@ export default function BadgeServicePage() {
 
   const addToLogbook = async (peakId: number, peakName: string) => {
     try {
-      const res = await fetch(`${BADGE_BASE}/badges/logbook`, {
+      const res = await fetch(`${BADGE_API_URL}/logbook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,7 +155,7 @@ export default function BadgeServicePage() {
   const fetchLogbook = async () => {
     setLogbookLoading(true);
     try {
-      const res = await fetch(`${BADGE_BASE}/badges/logbook?userId=${userId}`);
+      const res = await fetch(`${BADGE_API_URL}/logbook?userId=${userId}`);
       if (!res.ok) throw new Error("Failed to fetch logbook");
       const data = await res.json();
       setLogbookEntries(data.map((entry: any) => ({
