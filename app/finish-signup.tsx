@@ -10,7 +10,6 @@ export default function FinishSignup() {
   const [userInfo, setUserInfo] = useState<{ email?: string; username?: string; fullName?: string } | null>(null);
   const [formData, setFormData] = useState({
     bio: "",
-    age: "",
   });
 
   useEffect(() => {
@@ -37,7 +36,6 @@ export default function FinishSignup() {
         email: userInfo.email,
         fullName: userInfo.fullName || undefined,
         bio: formData.bio.trim() || undefined,
-        age: formData.age ? parseInt(formData.age) : undefined,
       };
       console.log("Submitting user data:", userData);
       await createUserProfile(userData);
@@ -88,15 +86,6 @@ export default function FinishSignup() {
             onChangeText={(text) => setFormData({ ...formData, bio: text })}
             multiline
             numberOfLines={4}
-          />
-
-          <Text style={styles.label}>Age</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your age"
-            value={formData.age}
-            onChangeText={(text) => setFormData({ ...formData, age: text.replace(/[^0-9]/g, "") })}
-            keyboardType="numeric"
           />
 
           <View style={styles.buttonContainer}>
