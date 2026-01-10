@@ -25,30 +25,13 @@ import type { LogbookEntry } from "./types/peaks";
 // Gateway URL for badge service
 const BADGE_API_URL = getServiceUrl("/api/badges");
 
-// Per-service overrides: path, HTTP method and (optional) baseUrl.
-const SERVICE_CONFIG: Record<
-  string,
-  { path?: string; method?: "GET" | "POST" | string; baseUrl?: string }
-> = {
-  "peaks-hikes-service": {
-    baseUrl: "http://localhost:8082",
-    path: "peaks-hikes/hello",
-    method: "GET",
-  },
-};
-
-const SERVICES = [
+const PAGES = [
+  "My Profile",
+  "Social Feed",
+  "Scoreboards",
   "activity-service",
-  "authentication-service",
   "badge-service",
-  "gateway-service",
-  "notification-service",
   "peaks-hikes-service",
-  "scoreboards-challenges-service",
-  "social-feed-service",
-  "trail-import-service",
-  "user-service",
-  "weather-service",
 ];
 
 const ICONS: Record<string, any> = {
@@ -83,7 +66,7 @@ export default function BadgeServicePage() {
   const [notesInput, setNotesInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const { ready, authenticated, login, logout, getToken, getUserId } = useAuth();
+  const { ready, authenticated, login, logout, register, getToken, getUserId } = useAuth();
   const userId = getUserId();
   
   useEffect(() => {
@@ -97,24 +80,24 @@ export default function BadgeServicePage() {
     }
   }, [userId]);
 
-  const triggerService = useCallback(async (serviceName: string) => {
-    setLoading(serviceName);
+  const navigateToPage = useCallback((pageName: string) => {
+    setLoading(pageName);
     try {
-      const cfg = SERVICE_CONFIG[serviceName] ?? {};
-      const base = cfg.baseUrl ?? BASE_URL;
-      const path = cfg.path ?? `${serviceName}/hello`;
-      const method = cfg.method ?? "POST";
-      const url = `${base}/${path}`;
-      
-      const res = await fetch(url, { method });
-      const text = await res.text();
-      if (!res.ok) {
-        Alert.alert("Error", `${serviceName} failed`);
-      } else {
-        Alert.alert("Success", `Triggered ${serviceName}`);
+      if (pageName === "My Profile") {
+        router.push("/my-user-profile");
+      } else if (pageName === "Social Feed") {
+        router.push("/social-feed");
+      } else if (pageName === "Scoreboards") {
+        router.push("/scoreboards-challenges");
+      } else if (pageName === "activity-service") {
+        router.push("/activity-service");
+      } else if (pageName === "badge-service") {
+        router.push("/badge-service");
+      } else if (pageName === "peaks-hikes-service") {
+        router.push("/");
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Request failed");
+      Alert.alert("Error", err?.message || "Navigation failed");
     } finally {
       setLoading(null);
     }
@@ -199,24 +182,20 @@ export default function BadgeServicePage() {
             <Text style={styles.title}>Badge Service</Text>
           </View>
           <View style={styles.authActions}>
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={() => router.push("/social-feed")}
-            >
-              <Text style={styles.authButtonText}>Social Feed</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.authButton, { marginLeft: 8, marginRight: 8 }]}
-              onPress={() => router.push("/my-user-profile")}
-            >
-              <Text style={styles.authButtonText}>My Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.authButton} onPress={() => Alert.alert("Sign up", "Not implemented yet")}>
-              <Text style={styles.authButtonText}>Sign up</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={() => Alert.alert("Log in", "Not implemented yet")}>
-              <Text style={styles.authButtonText}>Log in</Text>
-            </TouchableOpacity>
+            {!authenticated ? (
+              <>
+                <TouchableOpacity style={styles.authButton} onPress={register}>
+                  <Text style={styles.authButtonText}>Sign up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.authButton, { marginLeft: 8 }]} onPress={login}>
+                  <Text style={styles.authButtonText}>Log in</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={styles.authButton} onPress={logout}>
+                <Text style={styles.authButtonText}>Log out</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -234,13 +213,13 @@ export default function BadgeServicePage() {
                 </TouchableOpacity>
               </View>
               <View style={styles.topMenu}>
-                {SERVICES.map((s) => {
+                {PAGES.map((s) => {
                   const isLoading = loading === s;
                   return (
                     <TouchableOpacity
                       key={s}
                       style={[sidebarCollapsed ? styles.menuItemCollapsed : styles.menuItem, isLoading && styles.menuItemLoading]}
-                      onPress={() => triggerService(s)}
+                      onPress={() => navigateToPage(s)}
                       activeOpacity={0.7}
                       onLayout={!sidebarCollapsed ? (e) => {
                         const w = e.nativeEvent.layout.width;
