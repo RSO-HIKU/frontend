@@ -83,14 +83,19 @@ export default function BadgeServicePage() {
   const [notesInput, setNotesInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  const { ready, authenticated, login, logout, getToken } = useAuth();
+  const { ready, authenticated, login, logout, getToken, getUserId } = useAuth();
+  const userId = getUserId();
   
   useEffect(() => {
       if (!ready) return;
       if (!authenticated) router.replace("/login");
     }, [ready, authenticated]);
 
-  const userId = 1; // hardcoded for now
+  useEffect(() => {
+    if (userId) {
+      fetchLogbook();
+    }
+  }, [userId]);
 
   const triggerService = useCallback(async (serviceName: string) => {
     setLoading(serviceName);
@@ -129,6 +134,11 @@ export default function BadgeServicePage() {
   }, [peakSearchQuery]);
 
   const addToLogbook = async (peakId: number, peakName: string) => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+    
     try {
       const res = await fetch(`${BADGE_API_URL}/logbook`, {
         method: "POST",
@@ -153,9 +163,11 @@ export default function BadgeServicePage() {
   };
 
   const fetchLogbook = async () => {
+    if (!userId) return;
+    
     setLogbookLoading(true);
     try {
-      const res = await fetch(`${BADGE_API_URL}/logbook?userId=${userId}`);
+      const res = await fetch(`${BADGE_API_URL}/logbook?userId=${encodeURIComponent(userId)}`);
       if (!res.ok) throw new Error("Failed to fetch logbook");
       const data = await res.json();
       setLogbookEntries(data.map((entry: any) => ({
