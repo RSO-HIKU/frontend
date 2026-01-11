@@ -1,4 +1,5 @@
 import { appConfig, getServiceUrl } from "./appConfig";
+import { authFetch } from "./authFetch";
 
 export interface Challenge {
   id: number;
@@ -17,23 +18,6 @@ export interface ScoreboardEntry {
 }
 const API_URL = getServiceUrl("/api/scoreboards-challenges");
 const BASE_URL = `${API_URL}/scoreboards-challenges`;
-
-async function authFetch(url: string, options: RequestInit = {}, getToken?: () => Promise<string | null>) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...options.headers as Record<string, string>,
-  };
-
-  if (getToken) {
-    const token = await getToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  }
-
-  const response = await fetch(url, { ...options, headers });
-  return response;
-}
 
 export const scoreboardApi = {
   async getChallenges(userId?: string, getToken?: () => Promise<string | null>): Promise<Challenge[]> {

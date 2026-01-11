@@ -1,6 +1,7 @@
 import { getServiceUrl, getImageUploadFunctionUrl } from "./appConfig";
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
+import { authFetch } from "./authFetch";
 
 export interface Post {
   id: number;
@@ -73,9 +74,9 @@ export const feedApi = {
   },
 
   // Get posts from followed users
-  async getFollowedPosts(userId: string): Promise<Post[]> {
+  async getFollowedPosts(userId: string, getToken?: () => Promise<string | null>): Promise<Post[]> {
     try {
-      const response = await fetch(`${API_URL}/feed/followingPosts/${userId}`);
+      const response = await authFetch(`${API_URL}/feed/followingPosts/${userId}`, { method: "GET" }, getToken);
       if (!response.ok) {
         throw new Error(`Failed to fetch followed posts: ${response.status}`);
       }
@@ -87,9 +88,9 @@ export const feedApi = {
   },
 
   // Get user's own posts
-  async getUserPosts(userId: string): Promise<Post[]> {
+  async getUserPosts(userId: string, getToken?: () => Promise<string | null>): Promise<Post[]> {
     try {
-      const response = await fetch(`${API_URL}/feed/post/user/${userId}`);
+      const response = await authFetch(`${API_URL}/feed/post/user/${userId}`, { method: "GET" }, getToken);
       if (!response.ok) {
         throw new Error(`Failed to fetch user posts: ${response.status}`);
       }
@@ -101,11 +102,11 @@ export const feedApi = {
   },
 
   // Create a new post
-  async createPost(post: Omit<Post, "id" | "createdAt">): Promise<Post> {
+  async createPost(post: Omit<Post, "id" | "createdAt">, getToken?: () => Promise<string | null>): Promise<Post> {
 
     console.log("Creating post with data: ", post);
     try {
-      const response = await fetch(`${API_URL}/feed/post`, {
+      const response = await authFetch(`${API_URL}/feed/post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -114,7 +115,7 @@ export const feedApi = {
           automated: false,
           postimageurl: post.postimageurl,
         }),
-      });
+      }, getToken);
       if (!response.ok) {
         throw new Error(`Failed to create post: ${response.status}`);
       }
@@ -126,11 +127,11 @@ export const feedApi = {
   },
 
   // Delete a post
-  async deletePost(postId: number): Promise<void> {
+  async deletePost(postId: number, getToken?: () => Promise<string | null>): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/feed/post/${postId}`, {
+      const response = await authFetch(`${API_URL}/feed/post/${postId}`, {
         method: "DELETE",
-      });
+      }, getToken);
       if (!response.ok) {
         throw new Error(`Failed to delete post: ${response.status}`);
       }
@@ -141,9 +142,9 @@ export const feedApi = {
   },
 
   // Get my posts
-  async getMyPosts(userId: string): Promise<Post[]> {
+  async getMyPosts(userId: string, getToken?: () => Promise<string | null>): Promise<Post[]> {
     try {
-      const response = await fetch(`${API_URL}/feed/postFrom/${userId}`);
+      const response = await authFetch(`${API_URL}/feed/postFrom/${userId}`, { method: "GET" }, getToken);
       if (!response.ok) {
         throw new Error(`Failed to fetch my posts: ${response.status}`);
       }
