@@ -10,7 +10,7 @@ export default function SocialFeed() {
   const [error, setError] = useState<string | null>(null);
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const router = useRouter();
-  const { getUserId } = useAuth();
+  const { getUserId, getToken } = useAuth();
   const currentUserId = getUserId();
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export default function SocialFeed() {
     try {
       setLoading(true);
       setError(null);
-      const data = await feedApi.getFollowedPosts(currentUserId);
+      const data = await feedApi.getFollowedPosts(currentUserId, getToken);
       console.log("Fetched followed posts:", data);
       setPosts(data);
     } catch (err) {

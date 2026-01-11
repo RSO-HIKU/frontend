@@ -23,6 +23,7 @@ import { fetchWeatherData } from "./lib/weatherapi";
 import { appConfig } from "./lib/appConfig";
 import { useAuth } from "./context/AuthContext";
 import { getServiceUrl } from "./lib/appConfig";
+import { authFetch } from "./lib/authFetch";
 
 // Import Mapbox for native platforms
 let Mapbox: any, MapView: any, Camera: any, PointAnnotation: any, ShapeSource: any, LineLayer: any;
@@ -143,7 +144,7 @@ export default function Index() {
       const method = cfg.method ?? "POST";
 
       const url = `${base}/${path}`;
-      const res = await fetch(url, { method });
+      const res = await authFetch(url, { method }, getToken);
       const text = await res.text();
       if (!res.ok) {
         const msg = `Failed: ${res.status} ${res.statusText}`;
@@ -166,7 +167,7 @@ export default function Index() {
     setTrailLoading(true);
     try {
       console.log("Fetching trails with query:", searchQuery);
-      const data: TrailDto[] = await fetchTrails(searchQuery);
+      const data: TrailDto[] = await fetchTrails(searchQuery, getToken);
       console.log("Raw API response:", data);
 
       let features: TrailFeature[] = Array.isArray(data)
@@ -207,7 +208,7 @@ export default function Index() {
     setPeakLoading(true);
     try {
       console.log("Fetching peaks with query:", searchQuery);
-      const data = await fetchPeaks(searchQuery);
+      const data = await fetchPeaks(searchQuery, getToken);
       console.log("Raw peaks API response:", data);
 
       const features = Array.isArray(data)
@@ -611,11 +612,11 @@ export default function Index() {
                 placeholderTextColor="#666"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                onSubmitEditing={() => { fetchTrails(); fetchPeaks(); }}
+                onSubmitEditing={() => { fetchTrails(undefined, getToken); fetchPeaks(undefined, getToken); }}
                 returnKeyType="search"
                 style={styles.searchInput}
               />
-              <TouchableOpacity style={styles.searchButton} onPress={() => { fetchTrails(); fetchPeaks(); }} disabled={trailLoading || peakLoading}>
+              <TouchableOpacity style={styles.searchButton} onPress={() => { fetchTrails(undefined, getToken); fetchPeaks(undefined, getToken); }} disabled={trailLoading || peakLoading}>
                 <Text style={styles.searchButtonText}>{(trailLoading || peakLoading) ? "…" : "🔍"}</Text>
               </TouchableOpacity>
             </View>

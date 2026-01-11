@@ -15,7 +15,7 @@ import { useAuth } from "./context/AuthContext";
 import { useRouter } from "expo-router";
 
 export default function MyUserProfile() {
-  const { getUserId } = useAuth();
+  const { getUserId, getToken } = useAuth();
   const userId = getUserId();
   const router = useRouter();
   const [user, setUser] = useState<UserProfileDto | null>(null);
@@ -47,12 +47,12 @@ export default function MyUserProfile() {
     }
     const loadUser = async () => {
       try {
-        const data = await fetchUserProfile(userId);
+        const data = await fetchUserProfile(userId, getToken);
         setUser(data);
         setBio(data.bio || "");
         setUsername(data.username);
         setEmail(data.email || "");
-        const followingData = await fetchFollowing(userId);
+        const followingData = await fetchFollowing(userId, getToken);
       setFollowing(followingData);
       } catch (err: any) {
         alert(`Error: ${err.message}`);
@@ -70,7 +70,7 @@ export default function MyUserProfile() {
         alert("User not authenticated");
         return;
       }
-      const updated = await updateUserProfile(userId, { username, email, bio });
+      const updated = await updateUserProfile(userId, { username, email, bio }, getToken);
       setUser(updated);
       setEditing(false);
       alert("Profile updated!");
@@ -87,7 +87,7 @@ export default function MyUserProfile() {
         alert("User not authenticated");
         return;
       }
-      const data = await fetchFollowers(userId);
+      const data = await fetchFollowers(userId, getToken);
       setFollowers(data);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
@@ -104,7 +104,7 @@ export default function MyUserProfile() {
         alert("User not authenticated");
         return;
       }
-      const data = await fetchFollowing(userId);
+      const data = await fetchFollowing(userId, getToken);
       setFollowing(data);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
@@ -120,7 +120,7 @@ export default function MyUserProfile() {
     }
     setSearching(true);
     try {
-      const results = await searchUsers(searchQuery);
+      const results = await searchUsers(searchQuery, getToken);
       setSearchResults(results);
     } catch (err: any) {
       alert(`Search error: ${err.message}`);
@@ -135,7 +135,7 @@ const handleFollowUser = async (targetUserId: string) => {
         alert("User not authenticated");
         return;
       }
-    await followUser(userId, targetUserId);
+    await followUser(userId, targetUserId, getToken);
     alert("Now following!");
     setSearchResults(searchResults.filter((u) => u.id !== targetUserId));
     setSearchQuery("");
@@ -307,7 +307,7 @@ const handleFollowUser = async (targetUserId: string) => {
         alert("User not authenticated");
         return;
       }
-                  await unfollowUser(userId, u.id);
+                  await unfollowUser(userId, u.id, getToken);
                   setFollowing(following.filter((f) => f.id !== u.id));
                 } catch (err: any) {
                   alert("Failed to unfollow");
@@ -327,7 +327,7 @@ const handleFollowUser = async (targetUserId: string) => {
         alert("User not authenticated");
         return;
       }
-                  await unfollowUser(u.id, userId);
+                  await unfollowUser(u.id, userId, getToken);
                   setFollowers(followers.filter((f) => f.id !== u.id));
                 } catch (err: any) {
                   alert("Failed to remove follower");
