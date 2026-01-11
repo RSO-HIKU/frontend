@@ -5,7 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import { createUserProfile } from "./lib/userApi";
 
 export default function FinishSignup() {
-  const { getUserId, getUserInfo, checkProfile } = useAuth();
+  const { getUserId, getUserInfo, checkProfile, getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<{ email?: string; username?: string; fullName?: string } | null>(null);
   const [formData, setFormData] = useState({
@@ -38,7 +38,7 @@ export default function FinishSignup() {
         bio: formData.bio.trim() || undefined,
       };
       console.log("Submitting user data:", userData);
-      await createUserProfile(userData);
+      await createUserProfile(userData, getToken);
       console.log("User profile created successfully");
       await checkProfile(); // Refresh the profile status
       router.replace("/");
