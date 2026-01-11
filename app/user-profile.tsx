@@ -12,20 +12,20 @@ export default function UserProfile() {
   const [checkingFollow, setCheckingFollow] = useState(false);
   const params = useLocalSearchParams();
   const userId = params.userId as string;
-  const { getUserId } = useAuth();
+  const { getUserId, getToken } = useAuth();
   const currentUserId = getUserId();
   const router = useRouter();
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const data = await fetchUserProfile(userId);
+        const data = await fetchUserProfile(userId, getToken);
         setUser(data);
         
         // Check if current user is following this user
         if (currentUserId && currentUserId !== userId) {
           setCheckingFollow(true);
-          const followingList = await fetchFollowing(currentUserId);
+          const followingList = await fetchFollowing(currentUserId, getToken);
           setIsFollowing(followingList.some((u) => u.id === userId));
           setCheckingFollow(false);
         }
@@ -46,11 +46,11 @@ export default function UserProfile() {
     
     try {
       if (isFollowing) {
-        await unfollowUser(currentUserId, userId);
+        await unfollowUser(currentUserId, userId, getToken);
         setIsFollowing(false);
         Alert.alert("Success", "Unfollowed user");
       } else {
-        await followUser(currentUserId, userId);
+        await followUser(currentUserId, userId, getToken);
         setIsFollowing(true);
         Alert.alert("Success", "Now following user");
       }
