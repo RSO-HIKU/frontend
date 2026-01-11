@@ -1,4 +1,5 @@
 import { getServiceUrl } from "./appConfig";
+import { authFetch } from "./authFetch";
 
 export type WeatherDto = {
   temp?: string | null;
@@ -12,10 +13,10 @@ export type WeatherDto = {
 
 const API_URL = getServiceUrl("/api/weather");
 
-export async function fetchWeatherData(): Promise<WeatherDto> {
+export async function fetchWeatherData(getToken?: () => Promise<string | null>): Promise<WeatherDto> {
     console.log(`[fetchWeatherData] Fetching from: ${API_URL}/current`);
   try {
-    const res = await fetch(`${API_URL}/current`);
+    const res = await authFetch(`${API_URL}/current`, undefined, getToken);
     if (!res.ok) {
       console.error(`Weather fetch failed with status ${res.status}`);
       return {};

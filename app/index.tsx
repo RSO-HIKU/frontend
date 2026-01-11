@@ -251,7 +251,7 @@ export default function Index() {
     let mounted = true;
     const fetchWeather = async () => {
       try {
-        const data = await fetchWeatherData();
+        const data = await fetchWeatherData(getToken);
         console.log("[fetchWeather] Fetched data:", data);
         if (mounted) setWeather(data);
       } catch (e) {
