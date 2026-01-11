@@ -41,12 +41,7 @@ export default function ActivityServicePage() {
       <View style={styles.content}>
         {/* Header Bar */}
         <View style={styles.headerBar}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.push("/")}
-          >
-            <Text style={styles.backButtonText}>← Home</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight} />
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Activity Service</Text>
           </View>
