@@ -240,14 +240,16 @@ export default function Index() {
     }
   }, [searchQuery]);
 
-  // Auto-load trails on mount so the map has data without a manual search
+  // Auto-load trails only after auth is ready and user is authenticated
   useEffect(() => {
+    if (!ready || !authenticated) return;
     fetchTrailsData();
     fetchPeaksData();
-  }, []); // Empty dependency array - only run once on mount
+  }, [ready, authenticated, fetchTrailsData, fetchPeaksData]);
 
-  // Fetch weather once on mount and every minute
+  // Fetch weather once authenticated, and refresh every minute
   React.useEffect(() => {
+    if (!ready || !authenticated) return;
     let mounted = true;
     const fetchWeather = async () => {
       try {
@@ -264,7 +266,7 @@ export default function Index() {
       mounted = false;
       clearInterval(id);
     };
-  }, []);
+  }, [ready, authenticated, getToken]);
 
   // Initialize mapbox-gl map on web and add trails layer
   useEffect(() => {
