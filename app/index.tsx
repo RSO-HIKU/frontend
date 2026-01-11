@@ -509,11 +509,11 @@ export default function Index() {
                           router.push("/social-feed");
                         } else if (s === "Scoreboards") {
                           router.push("/scoreboards-challenges");
-                        } else if (s === "badge-service") {
+                        } else if (s === "Badges") {
                           router.push("/badge-service");
-                        } else if (s === "activity-service") {
+                        } else if (s === "Activities") {
                           router.push("/activity-service");
-                        } else if (s === "peaks-hikes-service") {
+                        } else if (s === "Peaks & Hikes") {
                       //    router.push("/user");
                         } else {
                           triggerService(s);
