@@ -76,9 +76,9 @@ const PAGES = [
     "My Profile",
   "Social Feed",
   "Scoreboards",
-  "activity-service",
-  "badge-service",
-  "peaks-hikes-service",
+  "Activities",
+  "Badges",
+  "Peaks & Hikes",
 //  "trail-import-service",
  // "weather-service",
 
