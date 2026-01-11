@@ -39,14 +39,14 @@ export const scoreboardApi = {
     if (!token) {
       throw new Error('No authentication token available');
     }
-    const response = await fetch(`${BASE_URL}/challenges/complete`, {
+    const response = await authFetch(`${BASE_URL}/challenges/complete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ userId, challengeId, username }),
-    });
+    }, getToken);
 
     if (!response.ok) {
       throw new Error('Failed to complete challenge');

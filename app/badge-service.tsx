@@ -21,6 +21,7 @@ import { appConfig, getServiceUrl } from "./lib/appConfig";
 import { useAuth } from "./context/AuthContext";
 import type { PeakDto } from "./lib/api";
 import type { LogbookEntry } from "./types/peaks";
+import { authFetch } from "./lib/authFetch";
 
 // Gateway URL for badge service
 const BADGE_API_URL = getServiceUrl("/api/badges");
@@ -106,7 +107,7 @@ export default function BadgeServicePage() {
   const searchPeaks = useCallback(async () => {
     setPeakLoading(true);
     try {
-      const data: PeakDto[] = await fetchPeaks(peakSearchQuery);
+      const data: PeakDto[] = await fetchPeaks(peakSearchQuery, getToken);
       setPeakSearchResults(data);
     } catch (err: any) {
       Alert.alert("Error", err?.message || "Failed to fetch peaks");
@@ -123,7 +124,7 @@ export default function BadgeServicePage() {
     }
     
     try {
-      const res = await fetch(`${BADGE_API_URL}/logbook`, {
+      const res = await authFetch(`${BADGE_API_URL}/logbook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -131,7 +132,7 @@ export default function BadgeServicePage() {
           peakId: peakId,
           notes: notesInput || peakName
         })
-      });
+      }, getToken);
       if (!res.ok) throw new Error("Failed to add to logbook");
       Alert.alert("Success", `Added ${peakName} to logbook`);
       setModalVisible(false);
@@ -150,7 +151,7 @@ export default function BadgeServicePage() {
     
     setLogbookLoading(true);
     try {
-      const res = await fetch(`${BADGE_API_URL}/logbook?userId=${encodeURIComponent(userId)}`);
+      const res = await authFetch(`${BADGE_API_URL}/logbook?userId=${encodeURIComponent(userId)}`, { method: "GET" }, getToken);
       if (!res.ok) throw new Error("Failed to fetch logbook");
       const data = await res.json();
       setLogbookEntries(data.map((entry: any) => ({
