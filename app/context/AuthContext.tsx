@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userId = (kc as any).tokenParsed?.sub;
     if (!userId) return;
 
-    const exists = await checkUserExists(userId);
+    const exists = await checkUserExists(userId, getToken);
     setNeedsProfile(!exists);
     if (exists) {
       setJustRegistered(false);
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Check if user profile exists in database
           const userId = (kc as any).tokenParsed?.sub;
           if (userId) {
-            const exists = await checkUserExists(userId);
+            const exists = await checkUserExists(userId, getToken);
             const needsProfileValue = !exists;
             setNeedsProfile(needsProfileValue);
             
