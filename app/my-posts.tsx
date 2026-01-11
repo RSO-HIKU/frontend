@@ -17,13 +17,13 @@ export default function MyPosts() {
   const [creating, setCreating] = useState(false);
   const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
   const router = useRouter();
-  const { getUserId } = useAuth();
+  const { getUserId, getToken } = useAuth();
   const currentUserId = getUserId();
   const [currentUsername, setCurrentUsername] = useState<string>("user");
   
   useEffect(() => {
     if (currentUserId) {
-      fetchUserProfile(currentUserId).then(user => setCurrentUsername(user.username)).catch(console.error);
+      fetchUserProfile(currentUserId, getToken).then(user => setCurrentUsername(user.username)).catch(console.error);
     }
     loadMyPosts();
   }, [currentUserId]);
@@ -62,7 +62,7 @@ export default function MyPosts() {
     try {
       setLoading(true);
       setError(null);
-      const data = await feedApi.getMyPosts(currentUserId);
+      const data = await feedApi.getMyPosts(currentUserId, getToken);
       setPosts(data);
     } catch (err) {
       setError("Failed to load your posts");
@@ -107,7 +107,7 @@ export default function MyPosts() {
         title: newTitle, 
         content: newContent,
         postimageurl: imageUrl
-      });
+      }, getToken);
       setModalVisible(false);
       setNewTitle("");
       setNewContent("");
@@ -123,7 +123,7 @@ export default function MyPosts() {
   const handleDeletePost = async (postId: number) => {
   if (confirm("Are you sure you want to delete this post?")) {
     try {
-      await feedApi.deletePost(postId);
+      await feedApi.deletePost(postId, getToken);
       setPosts(posts.filter((p) => p.id !== postId));
     } catch (err) {
       alert("Failed to delete post");
